@@ -1,13 +1,11 @@
 import concurrent.futures
-import multiprocessing
-import pandas
 import ale_p
 import subprocess
 import os
 import sys
 import argparse
 
-font = ""
+font = "/Users/christykail/Library/Fonts/Franklin Gothic Medium.ttf".replace(" ", "\ ")
 
 parser = argparse.ArgumentParser()
 
@@ -27,7 +25,6 @@ args = parser.parse_args()
 
 
 def get_input():
-
     input_text = input("Drop ALE here...")
 
     input_text = input_text.replace("\\", "").strip()
@@ -36,7 +33,6 @@ def get_input():
 
 
 def load_ale_as_df(path_to_ale: str):
-
     ale_object = ale_p.Ale()
     ale_object.load_from_file(path_to_ale)
 
@@ -44,19 +40,40 @@ def load_ale_as_df(path_to_ale: str):
 
 
 def compile_process(data: dict):
+    blanking_height = 100
 
-    burnins = []
+    blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
+    blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
+        blanking_height) + ":thickness=fill:color=black"
+
+    burnins = [blanking_top_string, blanking_bottom_string]
 
     # Create a burnin string for each position
-    for this_position in burnin_pos:
-        this_burnin = "drawtext=fontfile=" + font + ":" + data.get(this_position) + ":fontsize=24:" + "x=(w/2)-(tw/2):y=h-th-5" + ":fontcolor=DarkGray"
+    for this_index, this_position in enumerate(burnin_pos):
+
+        this_position_data = data.get(this_position)
+
+        if ":" in this_position_data:
+
+            print(this_position_data)
+            this_position_data = f'\"{this_position_data}\"'
+            print(this_position_data)
+
+        else:
+            this_burnin = "drawtext=fontfile=" + font + ":" + this_position_data + ":fontsize=24:" + burnin_locs[
+                this_index] + ":fontcolor=DarkGray"
+
+        if not this_position_data:
+            continue
+
         burnins.append(this_burnin)
+        print(this_burnin)
 
     export_process = ["ffmpeg",
                       "-y",
                       "-i", data["file_in"],
                       "-loglevel", "warning",
-                      # "-filter_complex", ",".join(burnins),
+                      "-filter_complex", ",".join(burnins),
                       "-codec:v", "libx264",
                       "-preset", args.speed,
                       "-b:v", "10000k",
@@ -74,18 +91,16 @@ def compile_process(data: dict):
 
 
 def process_video(process_data: list):
-
     process_result = subprocess.run(process_data, capture_output=True)
 
     return process_result
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', length=50, fill='█'):
-
     percent = iteration / total * 100
-    bar_count = (int(length*(iteration/total)))
-    empty_count = length-bar_count
-    bar = (fill*bar_count)+" "*empty_count
+    bar_count = (int(length * (iteration / total)))
+    empty_count = length - bar_count
+    bar = (fill * bar_count) + " " * empty_count
 
     print(f'\r{prefix}|{bar}| {round(percent)}% complete {suffix}', end="", flush=True)
 
@@ -104,6 +119,9 @@ if __name__ == "__main__":
         print("ALE loading failed for some reason *shrug*")
         sys.exit("ALE loading failed")
 
+    pad = str(5)
+    burnin_locs = ["x=" + pad + ":y=" + pad, "x=(w/2)-(tw/2):y=" + pad, "x=w-tw-" + pad + ":y=" + pad,
+                   "x=" + pad + ":y=h-th-" + pad, "x=(w/2)-(tw/2):y=h-th-" + pad, "x=w-tw-" + pad + ":y=h-th-" + pad]
     burnin_pos = ["topleft", "topmid", "topright", "bottomleft", "bottommid", "bottomright"]
     burnin_cols = [args.topleft, args.topmid, args.topright, args.bottomleft, args.bottommid, args.bottomright]
 
@@ -124,7 +142,6 @@ if __name__ == "__main__":
     for file in os.listdir(my_input_dir):
 
         if file.endswith(".mov"):
-
             files_in_dir.append(file)
 
     # compare clips in directory against dataframe
@@ -133,10 +150,10 @@ if __name__ == "__main__":
 
     for index, value in enumerate(df["Name"]):
 
-        if value+".mov" in files_in_dir:
+        if value + ".mov" in files_in_dir:
 
             print(f"Found {value}")
-            df["file_in"][index] = os.path.join(my_input_dir, value+".mov")
+            df["file_in"][index] = os.path.join(my_input_dir, value + ".mov")
             df["file_out"][index] = os.path.join(my_output_dir, value + ".mov")
 
         else:
@@ -145,13 +162,12 @@ if __name__ == "__main__":
             df.drop(index)
 
     print(df[["file_in", "file_out", "Name"]])
-    
+
     df[["file_in", "file_out", "Name"]].to_csv("Dataframe.csv")
 
     for index, values in df.iterrows():
-
         this_process = compile_process(values)
-        
+
         processes_list.append(this_process)
 
     complete_files = 0
@@ -166,6 +182,5 @@ if __name__ == "__main__":
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             complete_files = complete_files + 1
-            
-            print_progress_bar(complete_files, total_files, suffix=result)
 
+            print_progress_bar(complete_files, total_files, suffix=result)
