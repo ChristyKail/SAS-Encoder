@@ -4,8 +4,9 @@ import subprocess
 import os
 import sys
 import argparse
+import re
 
-font = "/Users/christykail/Library/Fonts/Franklin Gothic Medium.ttf".replace(" ", "\ ")
+font = "/System/Library/Fonts/Apple Symbols.ttf".replace(" ", "\ ")
 
 parser = argparse.ArgumentParser()
 
@@ -20,6 +21,8 @@ parser.add_argument("-s", "--speed", type=str, choices=["ultrafast", "superfast"
                                                         "medium", "slow", "slower", "veryslow"], default="veryfast")
 
 parser.add_argument("-t", "--threads", type=int, default=4)
+parser.add_argument("-b", "--blanking", type=float, default=None)
+parser.add_argument("-x", "--textsize", type=int, default=18)
 
 args = parser.parse_args()
 
@@ -40,34 +43,43 @@ def load_ale_as_df(path_to_ale: str):
 
 
 def compile_process(data: dict):
-    blanking_height = 100
 
-    blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
-    blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
-        blanking_height) + ":thickness=fill:color=black"
+    burnins = []
 
-    burnins = [blanking_top_string, blanking_bottom_string]
+    aspect_ratio = data["blanking"]
+
+    if aspect_ratio:
+
+        blanking_height = (1080-(1920/aspect_ratio))/2
+
+        blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
+        blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
+            blanking_height) + ":thickness=fill:color=black"
+
+        burnins.append(blanking_top_string)
+        burnins.append(blanking_bottom_string)
 
     # Create a burnin string for each position
     for this_index, this_position in enumerate(burnin_pos):
 
         this_position_data = data.get(this_position)
 
-        if ":" in this_position_data:
+        if re.match(r"([0-9]{2}:){3}[0-9]{2}", this_position_data):
 
-            print(this_position_data)
-            this_position_data = f'\"{this_position_data}\"'
-            print(this_position_data)
+            this_position_data = '\''+this_position_data.replace(":", "\\:")+'\''
+
+            this_burnin = "drawtext=fontfile=" + font + ":" + "Timecode\\ " \
+                          + ":timecode=" + this_position_data + ":rate=24:fontsize=" + str(args.textsize) + ":" \
+                          + burnin_locs[this_index] + ":fontcolor=DarkGray"
 
         else:
-            this_burnin = "drawtext=fontfile=" + font + ":" + this_position_data + ":fontsize=24:" + burnin_locs[
-                this_index] + ":fontcolor=DarkGray"
+            this_burnin = "drawtext=fontfile=" + font + ":" + this_position_data + ":fontsize=" \
+                          + str(args.textsize) + ":" + burnin_locs[this_index] + ":fontcolor=DarkGray"
 
         if not this_position_data:
             continue
 
         burnins.append(this_burnin)
-        print(this_burnin)
 
     export_process = ["ffmpeg",
                       "-y",
@@ -91,16 +103,16 @@ def compile_process(data: dict):
 
 
 def process_video(process_data: list):
-    process_result = subprocess.run(process_data, capture_output=True)
+    process_result = subprocess.run(process_data, capture_output=False)
 
     return process_result
 
 
-def print_progress_bar(iteration, total, prefix='', suffix='', length=50, fill='█'):
+def print_progress_bar(iteration, total, prefix='', suffix='', length=25, fill='#'):
     percent = iteration / total * 100
     bar_count = (int(length * (iteration / total)))
     empty_count = length - bar_count
-    bar = (fill * bar_count) + " " * empty_count
+    bar = (fill * bar_count) + "-" * empty_count
 
     print(f'\r{prefix}|{bar}| {round(percent)}% complete {suffix}', end="", flush=True)
 
@@ -108,14 +120,24 @@ def print_progress_bar(iteration, total, prefix='', suffix='', length=50, fill='
 if __name__ == "__main__":
 
     # my_input_ale = get_input()
-    my_input_ale = "/Volumes/GoogleDrive/Shared drives/OST - Software Dev/01_Current/2PIX/SAS/20210819_MU_PREP_Sync.ALE"
+    my_input_ale = "/Users/christykail/Desktop/SAS/_WORKING.ALE"
     my_input_dir = os.path.dirname(my_input_ale)
     my_output_dir = os.path.join(os.path.dirname(my_input_dir), "H264")
+
+    if not os.path.isdir(my_output_dir):
+
+        try:
+            os.mkdir(my_output_dir)
+        except:
+            print("Output folder could not be initialised")
+            sys.exit("Output folder could not be initialised")
+
     print(my_input_dir)
+    print(my_output_dir)
 
     try:
         df = load_ale_as_df(my_input_ale)
-    except Exception:
+    except:
         print("ALE loading failed for some reason *shrug*")
         sys.exit("ALE loading failed")
 
@@ -146,7 +168,7 @@ if __name__ == "__main__":
 
     # compare clips in directory against dataframe
 
-    df["file_in"], df["file_out"] = "", ""
+    df["file_in"], df["file_out"]  = "", ""
 
     for index, value in enumerate(df["Name"]):
 
@@ -161,13 +183,11 @@ if __name__ == "__main__":
             print(f"No data found for {file.strip('.mov')}")
             df.drop(index)
 
-    print(df[["file_in", "file_out", "Name"]])
-
-    df[["file_in", "file_out", "Name"]].to_csv("Dataframe.csv")
+    df["blanking"] = args.blanking
 
     for index, values in df.iterrows():
-        this_process = compile_process(values)
 
+        this_process = compile_process(values)
         processes_list.append(this_process)
 
     complete_files = 0
@@ -183,4 +203,6 @@ if __name__ == "__main__":
             result = future.result()
             complete_files = complete_files + 1
 
-            print_progress_bar(complete_files, total_files, suffix=result)
+            print_progress_bar(complete_files, total_files)
+
+    print("\07")
