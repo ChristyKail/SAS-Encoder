@@ -24,6 +24,13 @@ parser.add_argument("-t", "--threads", type=int, default=4)
 parser.add_argument("-b", "--blanking", type=float, default=None)
 parser.add_argument("-x", "--textsize", type=int, default=18)
 
+parser.add_argument("-w", "--watermark", type=str, default=None)
+parser.add_argument("-wd", "--watermark_dtext", type=str, default=None)
+parser.add_argument("-wy", "--watermark_ypos", type=float, default=0.7)
+parser.add_argument("-ws", "--watermark_size", type=int, default=64)
+parser.add_argument("-wo", "--watermark_opacity", type=float, default=0.3)
+
+
 args = parser.parse_args()
 
 
@@ -43,43 +50,51 @@ def load_ale_as_df(path_to_ale: str):
 
 
 def compile_process(data: dict):
-
     burnins = []
 
+    # blanking
     aspect_ratio = data["blanking"]
-
     if aspect_ratio:
-
-        blanking_height = (1080-(1920/aspect_ratio))/2
-
+        blanking_height = (1080 - (1920 / aspect_ratio)) / 2
         blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
         blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
             blanking_height) + ":thickness=fill:color=black"
-
         burnins.append(blanking_top_string)
         burnins.append(blanking_bottom_string)
 
-    # Create a burnin string for each position
+    # create a burnin string for each position
     for this_index, this_position in enumerate(burnin_pos):
-
         this_position_data = data.get(this_position)
 
-        if re.match(r"([0-9]{2}:){3}[0-9]{2}", this_position_data):
-
-            this_position_data = '\''+this_position_data.replace(":", "\\:")+'\''
-
-            this_burnin = "drawtext=fontfile=" + font + ":" + "Timecode\\ " \
-                          + ":timecode=" + this_position_data + ":rate=24:fontsize=" + str(args.textsize) + ":" \
-                          + burnin_locs[this_index] + ":fontcolor=DarkGray"
-
-        else:
-            this_burnin = "drawtext=fontfile=" + font + ":" + this_position_data + ":fontsize=" \
-                          + str(args.textsize) + ":" + burnin_locs[this_index] + ":fontcolor=DarkGray"
-
+        # if this burnin is blank
         if not this_position_data:
             continue
 
-        burnins.append(this_burnin)
+        # if this burnin is a timecode
+        if re.match(r"([0-9]{2}:){3}[0-9]{2}", this_position_data):
+            this_position_data = '\'' + this_position_data.replace(":", "\\:") + '\''
+            this_burnin_string = "drawtext=fontfile=" + font + ":" + "Timecode\\ " \
+                                 + ":timecode=" + this_position_data + ":rate=24:fontsize=" + str(args.textsize) + ":" \
+                                 + burnin_locs[this_index] + ":fontcolor=DarkGray"
+        # if it's not a timecode
+        else:
+            this_burnin_string = "drawtext=fontfile=" + font + ":" + this_position_data + ":fontsize=" \
+                                 + str(args.textsize) + ":" + burnin_locs[this_index] + ":fontcolor=DarkGray"
+        burnins.append(this_burnin_string)
+
+    # watermark
+    if args.watermark:
+        watermark_text = args.watermark
+
+        if "%" in watermark_text:
+
+            watermark_text = watermark_text.replace("%", data["watermark_dtext"])
+
+        watermark_string = "drawtext=fontfile=" + font + ":" + watermark_text + ":fontsize=" \
+                           + str(args.watermark_size) + ":x=(w/2)-(tw/2):y=h*" + str(args.watermark_ypos) + \
+                           ":fontcolor=DarkGray@"+str(args.watermark_opacity)
+
+        burnins.append(watermark_string)
 
     export_process = ["ffmpeg",
                       "-y",
@@ -168,7 +183,7 @@ if __name__ == "__main__":
 
     # compare clips in directory against dataframe
 
-    df["file_in"], df["file_out"]  = "", ""
+    df["file_in"], df["file_out"] = "", ""
 
     for index, value in enumerate(df["Name"]):
 
@@ -180,13 +195,13 @@ if __name__ == "__main__":
 
         else:
 
-            print(f"No data found for {file.strip('.mov')}")
+            print(f"No data found for {value.strip('.mov')}")
             df.drop(index)
 
     df["blanking"] = args.blanking
+    df["watermark_dtext"] = df[args.watermark_dtext]
 
     for index, values in df.iterrows():
-
         this_process = compile_process(values)
         processes_list.append(this_process)
 
