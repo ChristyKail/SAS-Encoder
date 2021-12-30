@@ -6,9 +6,12 @@ import sys
 import argparse
 import re
 
-font = "/System/Library/Fonts/Apple Symbols.ttf".replace(" ", "\ ")
-
 parser = argparse.ArgumentParser()
+
+parser.add_argument("-f", "--font", type=str, default="Franklin Gothic Medium.ttf")
+
+parser.add_argument("-b", "--blanking", type=float, default=None)
+parser.add_argument("-x", "--textsize", type=int, default=18)
 
 parser.add_argument("-tl", "--topleft", type=str)
 parser.add_argument("-tm", "--topmid", type=str)
@@ -17,19 +20,22 @@ parser.add_argument("-bl", "--bottomleft", type=str)
 parser.add_argument("-bm", "--bottommid", type=str)
 parser.add_argument("-br", "--bottomright", type=str)
 
-parser.add_argument("-s", "--speed", type=str, choices=["ultrafast", "superfast", "veryfast", "faster", "fast",
-                                                        "medium", "slow", "slower", "veryslow"], default="veryfast")
+parser.add_argument("-tlp", "--topleftprefix", type=str)
+parser.add_argument("-tmp", "--topmidprefix", type=str)
+parser.add_argument("-trp", "--toprightprefix", type=str)
+parser.add_argument("-blp", "--bottomleftprefix", type=str)
+parser.add_argument("-bmp", "--bottommidprefix", type=str)
+parser.add_argument("-brp", "--bottomrightprefix", type=str)
 
 parser.add_argument("-t", "--threads", type=int, default=4)
-parser.add_argument("-b", "--blanking", type=float, default=None)
-parser.add_argument("-x", "--textsize", type=int, default=18)
+parser.add_argument("-s", "--speed", type=str, choices=["ultrafast", "superfast", "veryfast", "faster", "fast",
+                                                        "medium", "slow", "slower", "veryslow"], default="veryfast")
 
 parser.add_argument("-w", "--watermark", type=str, default=None)
 parser.add_argument("-wd", "--watermark_dtext", type=str, default=None)
 parser.add_argument("-wy", "--watermark_ypos", type=float, default=0.7)
 parser.add_argument("-ws", "--watermark_size", type=int, default=64)
 parser.add_argument("-wo", "--watermark_opacity", type=float, default=0.3)
-
 
 args = parser.parse_args()
 
@@ -72,9 +78,12 @@ def compile_process(data: dict):
 
         # if this burnin is a timecode
         if re.match(r"([0-9]{2}:){3}[0-9]{2}", this_position_data):
+
+            timecode_prefix = ''
+
             this_position_data = '\'' + this_position_data.replace(":", "\\:") + '\''
-            this_burnin_string = "drawtext=fontfile=" + font + ":" + "Timecode\\ " \
-                                 + ":timecode=" + this_position_data + ":rate=24:fontsize=" + str(args.textsize) + ":" \
+            this_burnin_string = "drawtext=fontfile=" + font + ":" + timecode_prefix + ":timecode=" + this_position_data + ":rate=24:fontsize=" + str(
+                args.textsize) + ":" \
                                  + burnin_locs[this_index] + ":fontcolor=DarkGray"
         # if it's not a timecode
         else:
@@ -84,15 +93,15 @@ def compile_process(data: dict):
 
     # watermark
     if args.watermark:
+
         watermark_text = args.watermark
 
         if "%" in watermark_text:
-
             watermark_text = watermark_text.replace("%", data["watermark_dtext"])
 
         watermark_string = "drawtext=fontfile=" + font + ":" + watermark_text + ":fontsize=" \
                            + str(args.watermark_size) + ":x=(w/2)-(tw/2):y=h*" + str(args.watermark_ypos) + \
-                           ":fontcolor=DarkGray@"+str(args.watermark_opacity)
+                           ":fontcolor=DarkGray@" + str(args.watermark_opacity)
 
         burnins.append(watermark_string)
 
@@ -118,7 +127,7 @@ def compile_process(data: dict):
 
 
 def process_video(process_data: list):
-    process_result = subprocess.run(process_data, capture_output=False)
+    process_result = subprocess.run(process_data, capture_output=True)
 
     return process_result
 
@@ -132,12 +141,36 @@ def print_progress_bar(iteration, total, prefix='', suffix='', length=25, fill='
     print(f'\r{prefix}|{bar}| {round(percent)}% complete {suffix}', end="", flush=True)
 
 
+def get_font_path_mac(name: str):
+
+    font_user = os.path.join(os.path.expanduser('~'), "Library/Fonts", name)
+    font_global = os.path.join("/System/Library/Fonts", name)
+    font_supplemental = os.path.join("/System/Library/Fonts/Supplemental", name)
+
+    if os.path.isfile(font_global):
+        return font_global
+
+    elif os.path.isfile(font_supplemental):
+        return font_supplemental
+
+    elif os.path.isfile(font_user):
+        return font_user
+
+    else:
+        return None
+
+
 if __name__ == "__main__":
 
     # my_input_ale = get_input()
     my_input_ale = "/Users/christykail/Desktop/SAS/_WORKING.ALE"
     my_input_dir = os.path.dirname(my_input_ale)
     my_output_dir = os.path.join(os.path.dirname(my_input_dir), "H264")
+
+    font = get_font_path_mac(args.font)
+    if font is None:
+        print("Font not found")
+        sys.exit()
 
     if not os.path.isdir(my_output_dir):
 
@@ -161,6 +194,7 @@ if __name__ == "__main__":
                    "x=" + pad + ":y=h-th-" + pad, "x=(w/2)-(tw/2):y=h-th-" + pad, "x=w-tw-" + pad + ":y=h-th-" + pad]
     burnin_pos = ["topleft", "topmid", "topright", "bottomleft", "bottommid", "bottomright"]
     burnin_cols = [args.topleft, args.topmid, args.topright, args.bottomleft, args.bottommid, args.bottomright]
+    burnin_prefixes = [args.topleftprefix, args.topmidprefix, args.toprightprefix, args.bottomleftprefix, args.bottommidprefix, args.bottomrightprefix]
 
     # modify the dataframe so burn-in data is labelled correctly
     for index, position in enumerate(burnin_pos):
@@ -170,6 +204,10 @@ if __name__ == "__main__":
         except KeyError:
             print("No value set for", position)
             df[position] = ""
+
+        if burnin_prefixes[index]:
+
+            df[position+"_prefix"] = burnin_prefixes[index]
 
     processes_list = []
     files_in_dir = []
