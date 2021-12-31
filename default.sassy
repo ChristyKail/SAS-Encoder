@@ -1,10 +1,11 @@
-font,Franklin Gothic Medium.ttf,Font file name including extension.
+resolution,1920x1080,Output resolution
 blanking,2.39,Blanking aspect ratio - eg 2.39 or 1.85. Leave blank for no blanking
 bitrate,10000,Desired output bitrate in kbps
 ,,
 text_size,24,Burnin text size in pixels
 padding,5,Padding between edge of frame and burnins
 ,,
+font,Franklin Gothic Medium.ttf,Font file name including extension.
 top_left,TC {Start},Text to burn in to the top left - use curly brackets to retrieve value from ALE - eg. Shoot Day - {Shoot day}
 top_center,{Tape},
 top_right,SND{Auxiliary TC1},

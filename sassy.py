@@ -1,5 +1,5 @@
 import concurrent.futures
-import ale_p
+import ale
 import subprocess
 import os
 import sys
@@ -127,15 +127,11 @@ class Processor:
             if not this_data:
                 continue
 
-            print(f"\n{this_position}", this_data)
-
             # parse though each dynamic
             for matched_text in re.findall(r'{[\w \-]*}', this_data):
                 this_data = this_data.replace(matched_text, ale_data[matched_text.strip('{').strip('}')])
 
                 # TODO override sound timcodes when clip is MOS
-
-            print(this_position, this_data)
 
             # special case for timecode elements
             timecode_match = re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data)
@@ -178,6 +174,8 @@ class Processor:
 
             ffmpeg_filters.append(watermark_string)
 
+        bitrate = self.options["bitrate"]
+
         export_process = ["ffmpeg",
                           "-y",
                           "-i", ale_data["file_in"],
@@ -185,14 +183,13 @@ class Processor:
                           "-filter_complex", ",".join(ffmpeg_filters),
                           "-codec:v", "libx264",
                           "-preset", self.options["encoding_speed"],
-                          # TODO allow custom bitrates
-                          "-b:v", "10000k",
-                          "-minrate", "8000k",
-                          "-maxrate", "10000k",
-                          "-bufsize", "4800k",
-                          "-threads", "0",
+                          "-b:v", f'{bitrate}k',
+                          "-minrate", f'{int(bitrate)*0.8}k',
+                          "-maxrate", f'{bitrate}k',
+                          "-bufsize", f'{int(bitrate)*1.5}k',
+                          "-threads", "4",
                           "-movflags", "+faststart",
-                          "-s", "1920x1080",
+                          "-s", self.options["resolution"],
                           "-pix_fmt", "yuv420p",
                           "-codec:a", "aac",
                           ale_data["file_out"]]
@@ -216,10 +213,9 @@ def get_input():
 
 
 def load_ale_as_df(path_to_ale: str):
-    ale_object = ale_p.Ale()
-    ale_object.load_from_file(path_to_ale)
+    ale_object = ale.Ale(path_to_ale)
 
-    return ale_object.df
+    return ale_object.dataframe
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', length=25, fill='#'):
