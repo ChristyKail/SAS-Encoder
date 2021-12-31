@@ -1,0 +1,21 @@
+font,Franklin Gothic Medium.ttf,Font file name including extension.
+blanking,2.39,Blanking aspect ratio - eg 2.39 or 1.85. Leave blank for no blanking
+bitrate,10000,Desired output bitrate in kbps
+,,
+text_size,24,Burnin text size in pixels
+padding,5,Padding between edge of frame and burnins
+,,
+top_left,TC {Start},Text to burn in to the top left - use curly brackets to retrieve value from ALE - eg. Shoot Day - {Shoot day}
+top_center,{Display name},
+top_right,{Shot},
+bottom_left,,
+bottom_center,,
+bottom_right,,
+,,
+threads,4,"Number of video files to process similtaniosly "
+encoding_speed,veryfast,Encoding speed preset to use - ultrafast superfast veryfast faster fast medium slow slower or veryslow
+,,
+watermark,,Text to burn in as watermark - use curly brackets to retrieve value from ALE - eg. Property of Searchlight Pictures - {Shoot Date}
+watermark_y_position,0.8,Position of watermark - 0 for top of picture 1 for bottom 0.5 for centre etc
+watermark_size,48,Watermark text size in pixels
+watermark_opacity,0.9,Watermark opacity between 0 and 1

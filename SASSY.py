@@ -1,43 +1,207 @@
 import concurrent.futures
+
+import value as value
+
 import ale_p
 import subprocess
 import os
 import sys
 import argparse
 import re
+import csv_loader
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-f", "--font", type=str, default="Franklin Gothic Medium.ttf")
-
-parser.add_argument("-b", "--blanking", type=float, default=None)
-parser.add_argument("-x", "--textsize", type=int, default=18)
-
-parser.add_argument("-tl", "--topleft", type=str)
-parser.add_argument("-tm", "--topmid", type=str)
-parser.add_argument("-tr", "--topright", type=str)
-parser.add_argument("-bl", "--bottomleft", type=str)
-parser.add_argument("-bm", "--bottommid", type=str)
-parser.add_argument("-br", "--bottomright", type=str)
-
-parser.add_argument("-tlp", "--topleftprefix", type=str)
-parser.add_argument("-tmp", "--topmidprefix", type=str)
-parser.add_argument("-trp", "--toprightprefix", type=str)
-parser.add_argument("-blp", "--bottomleftprefix", type=str)
-parser.add_argument("-bmp", "--bottommidprefix", type=str)
-parser.add_argument("-brp", "--bottomrightprefix", type=str)
-
-parser.add_argument("-t", "--threads", type=int, default=4)
-parser.add_argument("-s", "--speed", type=str, choices=["ultrafast", "superfast", "veryfast", "faster", "fast",
-                                                        "medium", "slow", "slower", "veryslow"], default="veryfast")
-
-parser.add_argument("-w", "--watermark", type=str, default=None)
-parser.add_argument("-wd", "--watermark_dtext", type=str, default=None)
-parser.add_argument("-wy", "--watermark_ypos", type=float, default=0.7)
-parser.add_argument("-ws", "--watermark_size", type=int, default=64)
-parser.add_argument("-wo", "--watermark_opacity", type=float, default=0.3)
-
 args = parser.parse_args()
+
+
+class Processor:
+
+    def __init__(self, my_input_ale: str, options: dict):
+
+        self.options = options
+
+        if not self.verify_options():
+            sys.exit(1)
+
+        self.my_input_ale = my_input_ale
+        self.my_input_dir = os.path.dirname(my_input_ale)
+        self.my_output_dir = os.path.join(os.path.dirname(self.my_input_dir), "H264")
+
+        # initialise output dir
+        if not os.path.isdir(self.my_output_dir):
+            try:
+                os.mkdir(self.my_output_dir)
+            except:
+                raise NotADirectoryError("Could not initialise output directory")
+
+        # do font stuff
+        font = get_font_path_mac(self.options["font"])
+        if font is None:
+            raise FileNotFoundError("Font file not found")
+        self.options["font"] = font
+
+        try:
+            df = load_ale_as_df(my_input_ale)
+        except:
+            print("ALE loading failed for some reason *shrug*")
+
+        processes_list = []
+        files_in_dir = []
+
+        # get a list of MOV files in the source directory
+        for file in os.listdir(self.my_input_dir):
+
+            if file.endswith(".mov"):
+                files_in_dir.append(file)
+
+        df["file_in"], df["file_out"] = "", ""
+
+        for index, value in enumerate(df["Name"]):
+            if value + ".mov" in files_in_dir:
+
+                print(f"Found {value}")
+                df["file_in"][index] = os.path.join(self.my_input_dir, value + ".mov")
+                df["file_out"][index] = os.path.join(self.my_output_dir, value + ".mov")
+            else:
+                print(f"No data found for {value.strip('.mov')}")
+                df.drop(index)
+
+        burnin_names = ["top_left", "top_center", "top_right", "bottom_left", "bottom_center", "bottom_right"]
+        pad = self.options["padding"]
+        burnin_positions = [
+            "x=" + pad + ":y=" + pad,
+            "x=(w/2)-(tw/2):y=" + pad,
+            "x=w-tw-" + pad + ":y=" + pad,
+            "x=" + pad + ":y=h-th-" + pad,
+            "x=(w/2)-(tw/2):y=h-th-" + pad,
+            "x=w-tw-" + pad + ":y=h-th-" + pad
+        ]
+
+        self.burnin_positions_map = dict(zip(burnin_names, burnin_positions))
+        self.burnin_data_map = {key: value for key, value in self.options.items() if key in burnin_names}
+
+        for index, values in df.iterrows():
+            this_process = self.compile_process(values)
+            processes_list.append(this_process)
+
+        complete_files = 0
+        total_files = len(processes_list)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=int(self.options["threads"])) as executor:
+
+            futures = {executor.submit(self.process_video, process): process for process in processes_list}
+
+            print_progress_bar(complete_files, total_files, suffix="")
+
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                complete_files = complete_files + 1
+
+                print_progress_bar(complete_files, total_files)
+
+    def verify_options(self):
+
+        for pair in self.options.items():
+            print(pair)
+
+        return True
+
+    def compile_process(self, ale_data: dict):
+
+        ffmpeg_filters = []
+
+        # create output blanking
+        if self.options["blanking"]:
+            aspect_ratio = float(self.options["blanking"])
+            blanking_height = (1080 - (1920 / aspect_ratio)) / 2
+            blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
+            blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
+                blanking_height) + ":thickness=fill:color=black"
+            ffmpeg_filters.append(blanking_top_string)
+            ffmpeg_filters.append(blanking_bottom_string)
+
+        # create a filter for each burnin position
+        for this_position, this_data in self.burnin_data_map.items():
+
+            if not this_data:
+                continue
+
+            print(f"\n{this_position}", this_data)
+
+            # parse though each dynamic
+            for matched_text in re.findall(r'{[\w \-]*}', this_data):
+                this_data = this_data.replace(matched_text, ale_data[matched_text.strip('{').strip('}')])
+
+            print(this_position, this_data)
+
+            # special case for timecode elements
+            timecode_match = re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data)
+            if timecode_match:
+                tc_start = escaped(timecode_match.group().replace(":", "\\:"))
+                tc_prefix = this_data.replace(timecode_match.group(), "")
+
+                filter_string = "".join(["drawtext=fontfile=",
+                                         self.options["font"],
+                                         ":", escaped(tc_prefix),
+                                         ":timecode=", tc_start,
+                                         ":rate=24",
+                                         ":fontsize=", self.options["text_size"],
+                                         ":", self.burnin_positions_map[this_position],
+                                         ":fontcolor=DarkGray"
+                                         ])
+            # if it's not a timecode element, or if the timecode is blank
+            else:
+                filter_string = "".join(["drawtext=fontfile=",
+                                         self.options["font"],
+                                         ":", escaped(this_data),
+                                         ":fontsize=", self.options["text_size"],
+                                         ":", self.burnin_positions_map[this_position],
+                                         ":fontcolor=DarkGray"
+                                         ])
+
+            ffmpeg_filters.append(filter_string.replace(" ", "\ "))
+
+        # watermark
+        if self.options["watermark"]:
+            watermark_text = self.options["watermark"]
+
+            watermark_string = "".join(["drawtext=fontfile=",
+                                        self.options["font"],
+                                        ":", watermark_text,
+                                        ":fontsize=", self.options["watermark_size"],
+                                        ":x=(w/2)-(tw/2):y=h*", self.options["watermark_y_position"],
+                                        ":fontcolor=White@", self.options["watermark_opacity"]
+                                        ])
+
+            ffmpeg_filters.append(watermark_string.replace(" ", "\ "))
+
+        export_process = ["ffmpeg",
+                          "-y",
+                          "-i", ale_data["file_in"],
+                          "-loglevel", "warning",
+                          "-filter_complex", ",".join(ffmpeg_filters),
+                          "-codec:v", "libx264",
+                          "-preset", self.options["encoding_speed"],
+                          "-b:v", "10000k",
+                          "-minrate", "8000k",
+                          "-maxrate", "10000k",
+                          "-bufsize", "4800k",
+                          "-threads", "0",
+                          "-movflags", "+faststart",
+                          "-s", "1920x1080",
+                          "-pix_fmt", "yuv420p",
+                          "-codec:a", "aac",
+                          ale_data["file_out"]]
+
+        return export_process
+
+    def process_video(self, process_data: list):
+
+        print(" ".join(process_data))
+        process_result = subprocess.run(process_data, capture_output=False)
+
+        return process_result
 
 
 def get_input():
@@ -55,83 +219,6 @@ def load_ale_as_df(path_to_ale: str):
     return ale_object.df
 
 
-def compile_process(data: dict):
-    burnins = []
-
-    # blanking
-    aspect_ratio = data["blanking"]
-    if aspect_ratio:
-        blanking_height = (1080 - (1920 / aspect_ratio)) / 2
-        blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
-        blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
-            blanking_height) + ":thickness=fill:color=black"
-        burnins.append(blanking_top_string)
-        burnins.append(blanking_bottom_string)
-
-    # create a burnin string for each position
-    for this_index, this_position in enumerate(burnin_pos):
-        this_position_data = data.get(this_position)
-
-        # if this burnin is blank
-        if not this_position_data:
-            continue
-
-        # if this burnin is a timecode
-        if re.match(r"([0-9]{2}:){3}[0-9]{2}", this_position_data):
-
-            timecode_prefix = ''
-
-            this_position_data = '\'' + this_position_data.replace(":", "\\:") + '\''
-            this_burnin_string = "drawtext=fontfile=" + font + ":" + timecode_prefix + ":timecode=" + this_position_data + ":rate=24:fontsize=" + str(
-                args.textsize) + ":" \
-                                 + burnin_locs[this_index] + ":fontcolor=DarkGray"
-        # if it's not a timecode
-        else:
-            this_burnin_string = "drawtext=fontfile=" + font + ":" + this_position_data + ":fontsize=" \
-                                 + str(args.textsize) + ":" + burnin_locs[this_index] + ":fontcolor=DarkGray"
-        burnins.append(this_burnin_string)
-
-    # watermark
-    if args.watermark:
-
-        watermark_text = args.watermark
-
-        if "%" in watermark_text:
-            watermark_text = watermark_text.replace("%", data["watermark_dtext"])
-
-        watermark_string = "drawtext=fontfile=" + font + ":" + watermark_text + ":fontsize=" \
-                           + str(args.watermark_size) + ":x=(w/2)-(tw/2):y=h*" + str(args.watermark_ypos) + \
-                           ":fontcolor=DarkGray@" + str(args.watermark_opacity)
-
-        burnins.append(watermark_string)
-
-    export_process = ["ffmpeg",
-                      "-y",
-                      "-i", data["file_in"],
-                      "-loglevel", "warning",
-                      "-filter_complex", ",".join(burnins),
-                      "-codec:v", "libx264",
-                      "-preset", args.speed,
-                      "-b:v", "10000k",
-                      "-minrate", "8000k",
-                      "-maxrate", "10000k",
-                      "-bufsize", "4800k",
-                      "-threads", "0",
-                      "-movflags", "+faststart",
-                      "-s", "1920x1080",
-                      "-pix_fmt", "yuv420p",
-                      "-codec:a", "aac",
-                      data["file_out"]]
-
-    return export_process
-
-
-def process_video(process_data: list):
-    process_result = subprocess.run(process_data, capture_output=True)
-
-    return process_result
-
-
 def print_progress_bar(iteration, total, prefix='', suffix='', length=25, fill='#'):
     percent = iteration / total * 100
     bar_count = (int(length * (iteration / total)))
@@ -142,7 +229,6 @@ def print_progress_bar(iteration, total, prefix='', suffix='', length=25, fill='
 
 
 def get_font_path_mac(name: str):
-
     font_user = os.path.join(os.path.expanduser('~'), "Library/Fonts", name)
     font_global = os.path.join("/System/Library/Fonts", name)
     font_supplemental = os.path.join("/System/Library/Fonts/Supplemental", name)
@@ -160,102 +246,9 @@ def get_font_path_mac(name: str):
         return None
 
 
+def escaped(string: str):
+    return "\'" + string + "\'"
+
+
 if __name__ == "__main__":
-
-    # my_input_ale = get_input()
-    my_input_ale = "/Users/christykail/Desktop/SAS/_WORKING.ALE"
-    my_input_dir = os.path.dirname(my_input_ale)
-    my_output_dir = os.path.join(os.path.dirname(my_input_dir), "H264")
-
-    font = get_font_path_mac(args.font)
-    if font is None:
-        print("Font not found")
-        sys.exit()
-
-    if not os.path.isdir(my_output_dir):
-
-        try:
-            os.mkdir(my_output_dir)
-        except:
-            print("Output folder could not be initialised")
-            sys.exit("Output folder could not be initialised")
-
-    print(my_input_dir)
-    print(my_output_dir)
-
-    try:
-        df = load_ale_as_df(my_input_ale)
-    except:
-        print("ALE loading failed for some reason *shrug*")
-        sys.exit("ALE loading failed")
-
-    pad = str(5)
-    burnin_locs = ["x=" + pad + ":y=" + pad, "x=(w/2)-(tw/2):y=" + pad, "x=w-tw-" + pad + ":y=" + pad,
-                   "x=" + pad + ":y=h-th-" + pad, "x=(w/2)-(tw/2):y=h-th-" + pad, "x=w-tw-" + pad + ":y=h-th-" + pad]
-    burnin_pos = ["topleft", "topmid", "topright", "bottomleft", "bottommid", "bottomright"]
-    burnin_cols = [args.topleft, args.topmid, args.topright, args.bottomleft, args.bottommid, args.bottomright]
-    burnin_prefixes = [args.topleftprefix, args.topmidprefix, args.toprightprefix, args.bottomleftprefix, args.bottommidprefix, args.bottomrightprefix]
-
-    # modify the dataframe so burn-in data is labelled correctly
-    for index, position in enumerate(burnin_pos):
-        try:
-            df[position] = df[burnin_cols[index]]
-
-        except KeyError:
-            print("No value set for", position)
-            df[position] = ""
-
-        if burnin_prefixes[index]:
-
-            df[position+"_prefix"] = burnin_prefixes[index]
-
-    processes_list = []
-    files_in_dir = []
-    files_to_process = []
-
-    # get a list of MOV files in the source directory
-    for file in os.listdir(my_input_dir):
-
-        if file.endswith(".mov"):
-            files_in_dir.append(file)
-
-    # compare clips in directory against dataframe
-
-    df["file_in"], df["file_out"] = "", ""
-
-    for index, value in enumerate(df["Name"]):
-
-        if value + ".mov" in files_in_dir:
-
-            print(f"Found {value}")
-            df["file_in"][index] = os.path.join(my_input_dir, value + ".mov")
-            df["file_out"][index] = os.path.join(my_output_dir, value + ".mov")
-
-        else:
-
-            print(f"No data found for {value.strip('.mov')}")
-            df.drop(index)
-
-    df["blanking"] = args.blanking
-    df["watermark_dtext"] = df[args.watermark_dtext]
-
-    for index, values in df.iterrows():
-        this_process = compile_process(values)
-        processes_list.append(this_process)
-
-    complete_files = 0
-    total_files = len(processes_list)
-
-    with concurrent.futures.ProcessPoolExecutor(max_workers=args.threads) as executor:
-
-        futures = {executor.submit(process_video, process): process for process in processes_list}
-
-        print_progress_bar(complete_files, total_files, suffix="")
-
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            complete_files = complete_files + 1
-
-            print_progress_bar(complete_files, total_files)
-
-    print("\07")
+    processor = Processor("/Users/christykail/Desktop/SAS/_WORKING.ALE", csv_loader.load_csv("default.sassy"))
