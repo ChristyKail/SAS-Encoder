@@ -129,9 +129,17 @@ class Processor:
 
             # parse though each dynamic
             for matched_text in re.findall(r'{[\w \-]*}', this_data):
-                this_data = this_data.replace(matched_text, ale_data[matched_text.strip('{').strip('}')])
 
-                # TODO override sound timcodes when clip is MOS
+                ale_col_name = matched_text.strip('{').strip('}')
+
+                this_data = this_data.replace(matched_text, ale_data[ale_col_name])
+
+                # override sound timcodes when clip is MOS
+                if ale_col_name in ["Sound TC", "Auxiliary TC1"]:
+
+                    if not re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data):
+
+                        this_data = self.options["mos_tc_replacement"]
 
             # special case for timecode elements
             timecode_match = re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data)
