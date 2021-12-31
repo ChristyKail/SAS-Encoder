@@ -1,7 +1,4 @@
 import concurrent.futures
-
-import value as value
-
 import ale_p
 import subprocess
 import os
@@ -45,6 +42,7 @@ class Processor:
             df = load_ale_as_df(my_input_ale)
         except:
             print("ALE loading failed for some reason *shrug*")
+            sys.exit(1)
 
         processes_list = []
         files_in_dir = []
@@ -90,7 +88,7 @@ class Processor:
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=int(self.options["threads"])) as executor:
 
-            futures = {executor.submit(self.process_video, process): process for process in processes_list}
+            futures = {executor.submit(process_video, process): process for process in processes_list}
 
             print_progress_bar(complete_files, total_files, suffix="")
 
@@ -102,6 +100,8 @@ class Processor:
 
     def verify_options(self):
 
+        # TODO check all required options are preset
+        # TODO check all requested data is present in the ale
         for pair in self.options.items():
             print(pair)
 
@@ -133,6 +133,8 @@ class Processor:
             for matched_text in re.findall(r'{[\w \-]*}', this_data):
                 this_data = this_data.replace(matched_text, ale_data[matched_text.strip('{').strip('}')])
 
+                # TODO override sound timcodes when clip is MOS
+
             print(this_position, this_data)
 
             # special case for timecode elements
@@ -160,7 +162,7 @@ class Processor:
                                          ":fontcolor=DarkGray"
                                          ])
 
-            ffmpeg_filters.append(filter_string.replace(" ", "\ "))
+            ffmpeg_filters.append(filter_string)
 
         # watermark
         if self.options["watermark"]:
@@ -174,7 +176,7 @@ class Processor:
                                         ":fontcolor=White@", self.options["watermark_opacity"]
                                         ])
 
-            ffmpeg_filters.append(watermark_string.replace(" ", "\ "))
+            ffmpeg_filters.append(watermark_string)
 
         export_process = ["ffmpeg",
                           "-y",
@@ -183,6 +185,7 @@ class Processor:
                           "-filter_complex", ",".join(ffmpeg_filters),
                           "-codec:v", "libx264",
                           "-preset", self.options["encoding_speed"],
+                          # TODO allow custom bitrates
                           "-b:v", "10000k",
                           "-minrate", "8000k",
                           "-maxrate", "10000k",
@@ -196,12 +199,12 @@ class Processor:
 
         return export_process
 
-    def process_video(self, process_data: list):
 
-        print(" ".join(process_data))
-        process_result = subprocess.run(process_data, capture_output=False)
+def process_video(process_data: list):
 
-        return process_result
+    process_result = subprocess.run(process_data, capture_output=True)
+
+    return process_result
 
 
 def get_input():

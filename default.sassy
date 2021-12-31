@@ -6,8 +6,8 @@ text_size,24,Burnin text size in pixels
 padding,5,Padding between edge of frame and burnins
 ,,
 top_left,TC {Start},Text to burn in to the top left - use curly brackets to retrieve value from ALE - eg. Shoot Day - {Shoot day}
-top_center,{Display name},
-top_right,{Shot},
+top_center,{Tape},
+top_right,SND{Auxiliary TC1},
 bottom_left,,
 bottom_center,,
 bottom_right,,
