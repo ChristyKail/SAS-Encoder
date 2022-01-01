@@ -163,8 +163,6 @@ class Processor:
                     if not self.options[child]:
                         errors.append(f'{child} is not defined in the preset file - required by {parent}')
 
-
-
         #  check all requested data is present in the ale
         for string in self.options.values():
 
@@ -284,9 +282,7 @@ def process_video(process_data: list):
 
 def get_input():
     input_text = input("Drop ALE here...")
-
     input_text = input_text.replace("\\", "").strip()
-
     return input_text
 
 
@@ -328,4 +324,16 @@ def escaped(string: str):
 
 
 if __name__ == "__main__":
-    processor = Processor("/Users/christykail/Desktop/SAS/_WORKING.ALE", csv_loader.load_csv("default.sassy"))
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--preset", type=str, default="default.sassy")
+    parser.add_argument("-i", "--input", type=str, default="")
+
+    args = parser.parse_args()
+
+    if args.input == "":
+        input_filename = get_input()
+    else:
+        input_filename = args.input
+
+    processor = Processor(input_filename, csv_loader.load_csv("default.sassy"))
