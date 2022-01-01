@@ -1,11 +1,11 @@
 resolution,1920x1080,Output resolution
 blanking,2.39,Blanking aspect ratio - eg 2.39 or 1.85. Leave blank for no blanking
-bitrate,10000,Desired output bitrate in kbps
+bitrate,5000,Desired output bitrate in kbps
 ,,
-text_size,24,Burnin text size in pixels
+text_size,20,Burnin text size in pixels
 padding,5,Padding between edge of frame and burnins
 ,,
-font,Franklin Gothic Medium.ttf,Font file name including extension.
+font,GillSans.ttc,Font file name including extension.
 top_left,TC {Start},Text to burn in to the top left - use curly brackets to retrieve value from ALE - eg. Shoot Day - {Shoot day}
 top_center,{Tape},
 top_right,SND{Auxiliary TC1},
@@ -15,10 +15,10 @@ bottom_right,,
 ,,
 mos_tc_replacement,MUTE,Text to replace sound timecodes if clip is MOS
 ,,
-threads,4,"Number of video files to process simultaneously "
-encoding_speed,veryfast,Encoding speed preset to use - ultrafast superfast veryfast faster fast medium slow slower or veryslow
+threads,1,"Number of video files to process simultaneously "
+encoding_speed,ultrafast,Encoding speed preset to use - ultrafast superfast veryfast faster fast medium slow slower or veryslow
 ,,
-watermark,,Text to burn in as watermark - use curly brackets to retrieve value from ALE - eg. Property of Searchlight Pictures - {Shoot Date}
+watermark,Watermark,Text to burn in as watermark - use curly brackets to retrieve value from ALE - eg. Property of Searchlight Pictures - {Shoot Date}
 watermark_y_position,0.8,Position of watermark - 0 for top of picture 1 for bottom 0.5 for centre etc
-watermark_size,48,Watermark text size in pixels
-watermark_opacity,0.9,Watermark opacity between 0 and 1
+watermark_size,128,Watermark text size in pixels
+watermark_opacity,0.1,Watermark opacity between 0 and 1

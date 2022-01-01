@@ -7,19 +7,12 @@ import argparse
 import re
 import csv_loader
 
-parser = argparse.ArgumentParser()
-
-args = parser.parse_args()
-
 
 class Processor:
 
     def __init__(self, my_input_ale: str, options: dict):
 
         self.options = options
-
-        if not self.verify_options():
-            sys.exit(1)
 
         self.my_input_ale = my_input_ale
         self.my_input_dir = os.path.dirname(my_input_ale)
@@ -32,17 +25,25 @@ class Processor:
             except:
                 raise NotADirectoryError("Could not initialise output directory")
 
-        # do font stuff
-        font = get_font_path_mac(self.options["font"])
-        if font is None:
-            raise FileNotFoundError("Font file not found")
-        self.options["font"] = font
-
+        # load the ale
         try:
             df = load_ale_as_df(my_input_ale)
         except:
             print("ALE loading failed for some reason *shrug*")
             sys.exit(1)
+
+        # verify the options and ale
+        verified, errors = self.verify_options(df)
+        if not verified:
+            for error in errors:
+                print(error)
+            sys.exit(1)
+
+        # do font stuff
+        font = get_font_path_mac(self.options["font"])
+        if font is None:
+            raise FileNotFoundError("Font file not found")
+        self.options["font"] = font
 
         processes_list = []
         files_in_dir = []
@@ -98,14 +99,85 @@ class Processor:
 
                 print_progress_bar(complete_files, total_files)
 
-    def verify_options(self):
+    def verify_options(self, ale_data):
 
-        # TODO check all required options are preset
-        # TODO check all requested data is present in the ale
-        for pair in self.options.items():
-            print(pair)
+        print("Verifying options")
 
-        return True
+        errors = []
+
+        required_options = [
+            "resolution",
+            "blanking",
+            "bitrate",
+            "text_size",
+            "padding",
+            "font",
+            "mos_tc_replacement",
+            "threads",
+            "encoding_speed",
+        ]
+
+        dependencies = {
+
+            "watermark": ["watermark_y_position", "watermark_size", "watermark_opacity"]
+
+        }
+
+        option_patterns = {
+
+            "resolution": r'\d{3,4}x\d{3,4}',
+            "blanking": r'[\d\.]+',
+            "bitrate": r'\d+',
+            "text_size": r'\d+',
+            "padding": r'\d+',
+            "font": r'[\w .]+',
+            "top_left": r'.+',
+            "top_center": r'.+',
+            "top_right": r'.+',
+            "bottom_left": r'.+',
+            "bottom_center": r'.+',
+            "bottom_right": r'.+',
+            "mos_tc_replacement": r'[\w .-]+',
+            "threads": r'\d+',
+            "encoding_speed": r'ultrafast|superfast|veryfast|faster|fast|medium|slow|slower|veryslow',
+            "watermark": r'.+',
+            "watermark_y_position": r'[\d\.]+',
+            "watermark_size": r'\d+',
+            "watermark_opacity": r'[\d\.]+',
+
+        }
+
+        for option in required_options:
+            if not self.options[option]:
+                errors.append(f'{option} is not defined in the preset file')
+            else:
+                if not re.match(option_patterns[option], self.options[option]):
+                    errors.append(f'{self.options[option]} is not a valid value for {option}')
+
+        for parent, children in dependencies.items():
+
+            if self.options[parent]:
+
+                for child in children:
+
+                    if not self.options[child]:
+                        errors.append(f'{child} is not defined in the preset file - required by {parent}')
+
+
+
+        #  check all requested data is present in the ale
+        for string in self.options.values():
+
+            for element in re.findall(r'(?<={).*?(?=})', string):
+
+                if element not in ale_data.columns:
+                    errors.append(f'No data for \'{element}\' in ALE')
+
+        if len(errors) > 0:
+            return False, errors
+
+        else:
+            return True, errors
 
     def compile_process(self, ale_data: dict):
 
@@ -128,7 +200,7 @@ class Processor:
                 continue
 
             # parse though each dynamic
-            for matched_text in re.findall(r'{[\w \-]*}', this_data):
+            for matched_text in re.findall(r'{.*?}', this_data):
 
                 ale_col_name = matched_text.strip('{').strip('}')
 
@@ -138,7 +210,6 @@ class Processor:
                 if ale_col_name in ["Sound TC", "Auxiliary TC1"]:
 
                     if not re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data):
-
                         this_data = self.options["mos_tc_replacement"]
 
             # special case for timecode elements
@@ -192,9 +263,9 @@ class Processor:
                           "-codec:v", "libx264",
                           "-preset", self.options["encoding_speed"],
                           "-b:v", f'{bitrate}k',
-                          "-minrate", f'{int(bitrate)*0.8}k',
+                          "-minrate", f'{int(bitrate) * 0.8}k',
                           "-maxrate", f'{bitrate}k',
-                          "-bufsize", f'{int(bitrate)*1.5}k',
+                          "-bufsize", f'{int(bitrate) * 1.5}k',
                           "-threads", "4",
                           "-movflags", "+faststart",
                           "-s", self.options["resolution"],
@@ -206,9 +277,8 @@ class Processor:
 
 
 def process_video(process_data: list):
-
     process_result = subprocess.run(process_data, capture_output=True)
-
+    process_result.check_returncode()
     return process_result
 
 
