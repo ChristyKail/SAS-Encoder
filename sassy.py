@@ -99,6 +99,8 @@ class Processor:
 
                 print_progress_bar(complete_files, total_files)
 
+        print("\x07")
+
     def compile_process(self, ale_data: dict):
 
         ffmpeg_filters = []
@@ -163,6 +165,12 @@ class Processor:
         if self.options["watermark"]:
             watermark_text = self.options["watermark"]
 
+            for matched_text in re.findall(r'{.*?}', watermark_text):
+
+                ale_col_name = matched_text.strip('{').strip('}')
+
+                watermark_text = watermark_text.replace(matched_text, ale_data[ale_col_name])
+
             watermark_string = "".join(["drawtext=fontfile=",
                                         self.options["font"],
                                         ":", watermark_text,
@@ -196,9 +204,8 @@ class Processor:
         return export_process
 
 
-def verify_options(options, ale_data=None):
+def verify_options(options: dict, ale_data=None):
     print("Verifying options")
-
     errors = []
 
     required_options = [
@@ -261,13 +268,16 @@ def verify_options(options, ale_data=None):
 
     #  check all requested data is present in the ale
 
-    if ale_data:
-        for string in options.values():
+    if ale_data is not None:
 
-            for element in re.findall(r'(?<={).*?(?=})', string):
+        if ale_data.empty:
+            errors.append("Invalid ALE")
 
-                if element not in ale_data.columns:
-                    errors.append(f'No data for \'{element}\' in ALE')
+        else:
+            for string in options.values():
+                for element in re.findall(r'(?<={).*?(?=})', string):
+                    if element not in ale_data.columns:
+                        errors.append(f'No data for \'{element}\' in ALE')
     else:
         print("No ALE provided, could not check")
 
