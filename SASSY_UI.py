@@ -1,6 +1,10 @@
-import sassy
+import time
+
 import csv_loader
+import sassy
+import csv
 import tkinter as tk
+from tkinter import messagebox, filedialog
 import os
 
 
@@ -43,10 +47,12 @@ class App(tk.Tk):
 
         # input file
         self.label_input_file = tk.Label(self, text="Input ALE")
-        self.entry_input_file = tk.Entry(self, width=35)
+        self.entry_input_file = tk.Entry(self)
         self.entry_input_file.insert(0, "")
+        self.btn_input_file = tk.Button(self, text="Open", command=self.open_input_file)
         self.label_input_file.grid(column=0, row=1, sticky="E")
-        self.entry_input_file.grid(columnspan=3, column=1, row=1, sticky="W")
+        self.entry_input_file.grid(columnspan=2, column=1, row=1, sticky="EW")
+        self.btn_input_file.grid(column=3, row=1, sticky="W")
 
         # font
         self.label_font = tk.Label(self, text="Font")
@@ -169,25 +175,122 @@ class App(tk.Tk):
 
         self.frame_buttons = tk.Frame(self)
 
-        self.btn_load = tk.Button(self.frame_buttons, text="Load preset", width=6, command=lambda: self.load_preset())
-        self.btn_generate = tk.Button(self.frame_buttons, text="Generate", width=6, command=lambda: self.generate())
-        self.btn_execute = tk.Button(self.frame_buttons, text="Execute", width=6, command=lambda: self.execute())
+        self.btn_load = tk.Button(self.frame_buttons, text="Load preset", command=lambda: self.load_preset())
+        self.btn_generate = tk.Button(self.frame_buttons, text="Save preset", command=lambda: self.generate())
+        self.btn_execute = tk.Button(self.frame_buttons, text="Convert files", command=lambda: self.execute())
         self.btn_load.grid(column=0, row=0, sticky="EW")
         self.btn_generate.grid(column=1, row=0, sticky="EW")
         self.btn_execute.grid(column=2, row=0, sticky="EW")
 
         self.frame_buttons.grid(columnspan=4, column=0, row=9)
 
-    def load_preset(self):
-        pass
+        if os.path.isdir("presets"):
+
+            if os.path.isfile("presets/default.sassy"):
+                self.load_preset("presets/default.sassy")
+
+        else:
+            os.mkdir("presets")
+
+    def open_input_file(self):
+
+        file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
+                                               filetypes=[("ALE files", "*.ale")])
+        self.entry_input_file.delete(0, 'end')
+        self.entry_input_file.insert(0, file_name)
+
+    def load_preset(self, filename=None):
+
+        if not filename:
+            file_name = filedialog.askopenfilename(parent=self, title="Select preset file",
+                                                   initialdir="presets",
+                                                   filetypes=[("SASSY presets", "*.sassy")])
+        else:
+            file_name = filename
+
+        if not file_name:
+            return
+
+        options_dict = csv_loader.load_csv(file_name)
+
+        self.entry_blanking.delete(0, 'end')
+        self.entry_blanking.insert(0, options_dict["blanking"])
+        self.entry_bitrate.delete(0, 'end')
+        self.entry_bitrate.insert(0, options_dict["bitrate"])
+
+        self.entry_text_size.delete(0, 'end')
+        self.entry_text_size.insert(0, options_dict["text_size"])
+        self.entry_padding.delete(0, 'end')
+        self.entry_padding.insert(0, options_dict["padding"])
+
+        self.var_font.set(options_dict["font"])
+
+        self.entry_top_left.delete(0, 'end')
+        self.entry_top_left.insert(0, options_dict["top_left"])
+        self.entry_top_center.delete(0, 'end')
+        self.entry_top_center.insert(0, options_dict["top_center"])
+        self.entry_top_right.delete(0, 'end')
+        self.entry_top_right.insert(0, options_dict["top_right"])
+        self.entry_bottom_left.delete(0, 'end')
+        self.entry_bottom_left.insert(0, options_dict["bottom_left"])
+        self.entry_bottom_center.delete(0, 'end')
+        self.entry_bottom_center.insert(0, options_dict["bottom_center"])
+        self.entry_bottom_right.delete(0, 'end')
+        self.entry_bottom_right.insert(0, options_dict["bottom_right"])
+
+        self.entry_mos_replacement.delete(0, 'end')
+        self.entry_mos_replacement.insert(0, options_dict["mos_tc_replacement"])
+
+        self.entry_processes.delete(0, 'end')
+        self.entry_processes.insert(0, options_dict["threads"])
+
+        self.var_encoding_speed.set(options_dict["encoding_speed"])
+
+        self.entry_watermark.delete(0, 'end')
+        self.entry_watermark.insert(0, options_dict["watermark"])
+        self.entry_watermark_y_pos.delete(0, 'end')
+        self.entry_watermark_y_pos.insert(0, options_dict["watermark_y_position"])
+        self.entry_watermark_size.delete(0, 'end')
+        self.entry_watermark_size.insert(0, options_dict["watermark_size"])
+        self.entry_watermark_opacity.delete(0, 'end')
+        self.entry_watermark_opacity.insert(0, options_dict["watermark_opacity"])
 
     def generate(self):
 
-        my_dict = self.compile_dict()
+        options_dict = self.compile_dict()
 
+        is_good, errors = sassy.verify_options(options_dict)
+
+        if not is_good:
+            message = "\n\n".join([x for x in errors])
+            messagebox.showwarning(title="Some errors occurred", message=message)
+            return
+
+        file_name = filedialog.asksaveasfilename(defaultextension='.sassy', initialdir="presets")
+        if file_name:
+            with open(file_name, "w") as file_handler:
+                writer = csv.writer(file_handler)
+                for key, value in options_dict.items():
+                    writer.writerow([key, value])
 
     def execute(self):
-        pass
+
+        options_dict = self.compile_dict()
+
+        ale_data = sassy.load_ale_as_df(self.entry_input_file.get())
+
+        is_good, errors = sassy.verify_options(options_dict, ale_data)
+
+        if not is_good:
+            message = "\n\n".join([x for x in errors])
+            messagebox.showwarning(title="Some errors occurred", message=message)
+            return
+
+        self.attributes("-alpha", 0.5)
+        self.update()
+        processor = sassy.Processor(self.entry_input_file.get(), options_dict)
+        self.attributes("-alpha", 1)
+        self.lift()
 
     def compile_dict(self):
 
@@ -200,7 +303,7 @@ class App(tk.Tk):
             "text_size": self.entry_text_size.get(),
             "padding": self.entry_padding.get(),
 
-            "font": self.var_font,
+            "font": self.var_font.get(),
             "top_left": self.entry_top_left.get(),
             "top_center": self.entry_top_center.get(),
             "top_right": self.entry_top_right.get(),
@@ -211,14 +314,15 @@ class App(tk.Tk):
             "mos_tc_replacement": self.entry_mos_replacement.get(),
 
             "threads": self.entry_processes.get(),
-            "encoding_speed": self.var_encoding_speed,
+            "encoding_speed": self.var_encoding_speed.get(),
 
             "watermark": self.entry_watermark.get(),
             "watermark_y_position": self.entry_watermark_y_pos.get(),
             "watermark_size": self.entry_watermark_size.get(),
             "watermark_opacity": self.entry_watermark_opacity.get(),
         }
-        return
+
+        return options_dict
 
 
 if __name__ == "__main__":
