@@ -1,11 +1,10 @@
-import time
+import csv
+import os
+import tkinter as tk
+from tkinter import messagebox, filedialog
 
 import csv_loader
 import sas_encoder
-import csv
-import tkinter as tk
-from tkinter import messagebox, filedialog
-import os
 
 
 def get_all_fonts():
@@ -30,15 +29,16 @@ class App(tk.Tk):
         super().__init__()
 
         self.attributes("-alpha", 1)
-        self.title("Cinelab Film & Digital - SASSY")
+        self.title("Cinelab Film & Digital - SAS encoder")
 
         self.columnconfigure(tuple(range(4)), weight=1, minsize=5, pad=10)
         self.rowconfigure(tuple(range(8)), weight=1, pad=5)
 
         try:
-            self.logo_image = tk.PhotoImage(file="/Users/christykail/Cinelab_dev/CFD-Icon_Standard.png")
+            self.logo_image = tk.PhotoImage(file="CFD-Icon_Standard.png")
+            self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file="CFD-Icon_Standard.png"))
 
-        except Exception as x:
+        except FileNotFoundError:
             print("Logo failed to load")
 
         else:
@@ -136,14 +136,14 @@ class App(tk.Tk):
         self.entry_watermark_size.grid(column=1, row=8, sticky="W")
 
         # encoder settings
-        self.label_mos_replacement = tk.Label(self, text="MOS TC replacement")
+        self.label_mos_replacement = tk.Label(self, text="MOS TC")
         self.entry_mos_replacement = tk.Entry(self, width=6)
         self.entry_mos_replacement.insert(0, "MOS")
         self.label_mos_replacement.grid(column=2, row=6, sticky="E")
         self.entry_mos_replacement.grid(column=3, row=6, sticky="W")
 
         # encoder settings
-        self.label_processes = tk.Label(self, text="Simultaneous processes")
+        self.label_processes = tk.Label(self, text="Processes")
         self.entry_processes = tk.Entry(self, width=6)
         self.entry_processes.insert(0, "8")
         self.label_processes.grid(column=2, row=7, sticky="E")
@@ -168,6 +168,13 @@ class App(tk.Tk):
         self.label_encoding_speed.grid(column=2, row=8, sticky="E")
         self.option_encoding_speed.grid(column=3, row=8, sticky="W")
 
+        self.label_limit_audio = tk.Label(self, text="Limit to A1")
+        self.var_limit_audio = tk.StringVar()
+        self.var_limit_audio.set("True")
+        self.check_limit_audio = tk.Checkbutton(self, variable=self.var_limit_audio, onvalue="True", offvalue="False")
+        self.label_limit_audio.grid(column=2, row=9, sticky="E")
+        self.check_limit_audio.grid(column=3, row=9, sticky="W")
+
         # the buttons at the bottom
 
         self.frame_buttons = tk.Frame(self, pady=15)
@@ -179,7 +186,7 @@ class App(tk.Tk):
         self.btn_generate.grid(column=1, row=0, sticky="EW")
         self.btn_execute.grid(column=2, row=0, sticky="EW")
 
-        self.frame_buttons.grid(columnspan=4, column=0, row=9)
+        self.frame_buttons.grid(columnspan=4, column=0, row=10)
 
         if os.path.isdir("presets"):
 
@@ -242,6 +249,8 @@ class App(tk.Tk):
         self.entry_processes.insert(0, options_dict["threads"])
 
         self.var_encoding_speed.set(options_dict["encoding_speed"])
+
+        self.var_limit_audio.set(options_dict["limit_audio_tracks"])
 
         self.entry_watermark.delete(0, 'end')
         self.entry_watermark.insert(0, options_dict["watermark"])
@@ -312,6 +321,8 @@ class App(tk.Tk):
 
             "threads": self.entry_processes.get(),
             "encoding_speed": self.var_encoding_speed.get(),
+
+            "limit_audio_tracks":self.var_limit_audio.get(),
 
             "watermark": self.entry_watermark.get(),
             "watermark_y_position": self.entry_watermark_y_pos.get(),

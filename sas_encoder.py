@@ -166,7 +166,6 @@ class Processor:
             watermark_text = self.options["watermark"]
 
             for matched_text in re.findall(r'{.*?}', watermark_text):
-
                 ale_col_name = matched_text.strip('{').strip('}')
 
                 watermark_text = watermark_text.replace(matched_text, ale_data[ale_col_name])
@@ -183,23 +182,31 @@ class Processor:
 
         bitrate = self.options["bitrate"]
 
+        if self.options["limit_audio_tracks"] == "True":
+            mapping = ["-map", "0:v",
+                       "-map", "0:a:0?"]
+
+        else:
+            mapping = []
+
         export_process = ["ffmpeg",
                           "-y",
                           "-i", ale_data["file_in"],
-                          "-loglevel", "warning",
-                          "-filter_complex", ",".join(ffmpeg_filters),
-                          "-codec:v", "libx264",
-                          "-preset", self.options["encoding_speed"],
-                          "-b:v", f'{bitrate}k',
-                          "-minrate", f'{int(bitrate) * 0.8}k',
-                          "-maxrate", f'{bitrate}k',
-                          "-bufsize", f'{int(bitrate) * 1.5}k',
-                          "-threads", "4",
-                          "-movflags", "+faststart",
-                          "-s", self.options["resolution"],
-                          "-pix_fmt", "yuv420p",
-                          "-codec:a", "aac",
-                          ale_data["file_out"]]
+                          "-loglevel", "warning"
+                          ] + mapping + [
+                             "-filter_complex", ",".join(ffmpeg_filters),
+                             "-codec:v", "libx264",
+                             "-preset", self.options["encoding_speed"],
+                             "-b:v", f'{bitrate}k',
+                             "-minrate", f'{int(bitrate) * 0.8}k',
+                             "-maxrate", f'{bitrate}k',
+                             "-bufsize", f'{int(bitrate) * 1.5}k',
+                             "-threads", "4",
+                             "-movflags", "+faststart",
+                             "-s", self.options["resolution"],
+                             "-pix_fmt", "yuv420p",
+                             "-codec:a", "aac",
+                             ale_data["file_out"]]
 
         return export_process
 
@@ -350,4 +357,4 @@ if __name__ == "__main__":
     else:
         input_filename = args.input
 
-    processor = Processor(input_filename, csv_loader.load_csv("default.sasen"))
+    processor = Processor(input_filename, csv_loader.load_csv("presets/default.sasen"))

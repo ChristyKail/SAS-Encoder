@@ -1,0 +1,20 @@
+resolution,1920x1080
+blanking,2
+bitrate,5000
+text_size,20
+padding,5
+font,Franklin Gothic Medium.ttf
+top_left,TC {Start}
+top_center,{Tape}
+top_right,SND{Auxiliary TC1}
+bottom_left,{Shot}
+bottom_center,{Display name}
+bottom_right,
+mos_tc_replacement,MOS
+threads,4
+encoding_speed,veryfast
+limit_audio_tracks,
+watermark,CINELAB - Test material
+watermark_y_position,0.75
+watermark_size,100
+watermark_opacity,0.2
