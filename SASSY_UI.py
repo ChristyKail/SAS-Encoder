@@ -61,9 +61,9 @@ class App(tk.Tk):
         self.var_font = tk.StringVar()
         self.var_font.set(self.items_font[0])
         self.option_font = tk.OptionMenu(self, self.var_font, *self.items_font)
-        self.option_font.config(width=30)
+        # self.option_font.config()
         self.label_font.grid(column=0, row=2, sticky="E")
-        self.option_font.grid(columnspan=3, column=1, row=2, sticky="W")
+        self.option_font.grid(columnspan=2, column=1, row=2, sticky="EW")
 
         # blanking and text size
         self.label_blanking = tk.Label(self, text="Blanking")
@@ -93,9 +93,6 @@ class App(tk.Tk):
 
         # the burnin frame
         self.frame_burnins = tk.LabelFrame(self, text="Burnin layout")
-
-        # burnin_frame.columnconfigure(tuple(range(3)), weight=1, minsize=5, pad=10)
-        # burnin_frame.rowconfigure(tuple(range(8)), weight=1, pad=5)
 
         self.entry_top_left = tk.Entry(self.frame_burnins, width=14)
         self.entry_top_left.grid(column=0, row=0, sticky="EW")
@@ -173,7 +170,7 @@ class App(tk.Tk):
 
         # the buttons at the bottom
 
-        self.frame_buttons = tk.Frame(self)
+        self.frame_buttons = tk.Frame(self, pady=15)
 
         self.btn_load = tk.Button(self.frame_buttons, text="Load preset", command=lambda: self.load_preset())
         self.btn_generate = tk.Button(self.frame_buttons, text="Save preset", command=lambda: self.generate())
