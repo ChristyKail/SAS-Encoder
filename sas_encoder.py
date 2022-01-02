@@ -340,7 +340,7 @@ def escaped(string: str):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--preset", type=str, default="default.sassy")
+    parser.add_argument("-p", "--preset", type=str, default="default.sasen")
     parser.add_argument("-i", "--input", type=str, default="")
 
     args = parser.parse_args()
@@ -350,4 +350,4 @@ if __name__ == "__main__":
     else:
         input_filename = args.input
 
-    processor = Processor(input_filename, csv_loader.load_csv("default.sassy"))
+    processor = Processor(input_filename, csv_loader.load_csv("default.sasen"))

@@ -1,7 +1,7 @@
 import time
 
 import csv_loader
-import sassy
+import sas_encoder
 import csv
 import tkinter as tk
 from tkinter import messagebox, filedialog
@@ -183,8 +183,8 @@ class App(tk.Tk):
 
         if os.path.isdir("presets"):
 
-            if os.path.isfile("presets/default.sassy"):
-                self.load_preset("presets/default.sassy")
+            if os.path.isfile("presets/default.sasen"):
+                self.load_preset("presets/default.sasen")
 
         else:
             os.mkdir("presets")
@@ -201,7 +201,7 @@ class App(tk.Tk):
         if not filename:
             file_name = filedialog.askopenfilename(parent=self, title="Select preset file",
                                                    initialdir="presets",
-                                                   filetypes=[("SASSY presets", "*.sassy")])
+                                                   filetypes=[("SAS Encoder presets", "*.sasen")])
         else:
             file_name = filename
 
@@ -256,14 +256,14 @@ class App(tk.Tk):
 
         options_dict = self.compile_dict()
 
-        is_good, errors = sassy.verify_options(options_dict)
+        is_good, errors = sas_encoder.verify_options(options_dict)
 
         if not is_good:
             message = "\n\n".join([x for x in errors])
             messagebox.showwarning(title="Some errors occurred", message=message)
             return
 
-        file_name = filedialog.asksaveasfilename(defaultextension='.sassy', initialdir="presets")
+        file_name = filedialog.asksaveasfilename(defaultextension='.sasen', initialdir="presets")
         if file_name:
             with open(file_name, "w") as file_handler:
                 writer = csv.writer(file_handler)
@@ -274,9 +274,9 @@ class App(tk.Tk):
 
         options_dict = self.compile_dict()
 
-        ale_data = sassy.load_ale_as_df(self.entry_input_file.get())
+        ale_data = sas_encoder.load_ale_as_df(self.entry_input_file.get())
 
-        is_good, errors = sassy.verify_options(options_dict, ale_data)
+        is_good, errors = sas_encoder.verify_options(options_dict, ale_data)
 
         if not is_good:
             message = "\n\n".join([x for x in errors])
@@ -285,7 +285,7 @@ class App(tk.Tk):
 
         self.attributes("-alpha", 0.5)
         self.update()
-        processor = sassy.Processor(self.entry_input_file.get(), options_dict)
+        processor = sas_encoder.Processor(self.entry_input_file.get(), options_dict)
         self.attributes("-alpha", 1)
         self.lift()
 
