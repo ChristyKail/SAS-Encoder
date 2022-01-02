@@ -13,9 +13,9 @@ bottom_left,,
 bottom_center,,
 bottom_right,,
 ,,
-mos_tc_replacement,MUTE,Text to replace sound timecodes if clip is MOS
+mos_tc_replacement,MUTE,Text to replace sound timecodes if clip is MOS. Currently applies to Auxiliary TC1 and Sound TC
 ,,
-threads,1,"Number of video files to process simultaneously "
+threads,1,"Number of video files to process simultaneously"
 encoding_speed,ultrafast,Encoding speed preset to use - ultrafast superfast veryfast faster fast medium slow slower or veryslow
 ,,
 watermark,Watermark,Text to burn in as watermark - use curly brackets to retrieve value from ALE - eg. Property of Searchlight Pictures - {Shoot Date}
