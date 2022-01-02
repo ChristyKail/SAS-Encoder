@@ -33,7 +33,7 @@ class Processor:
             sys.exit(1)
 
         # verify the options and ale
-        verified, errors = self.verify_options(df)
+        verified, errors = verify_options(self.options, df)
         if not verified:
             for error in errors:
                 print(error)
@@ -98,84 +98,6 @@ class Processor:
                 complete_files = complete_files + 1
 
                 print_progress_bar(complete_files, total_files)
-
-    def verify_options(self, ale_data):
-
-        print("Verifying options")
-
-        errors = []
-
-        required_options = [
-            "resolution",
-            "blanking",
-            "bitrate",
-            "text_size",
-            "padding",
-            "font",
-            "mos_tc_replacement",
-            "threads",
-            "encoding_speed",
-        ]
-
-        dependencies = {
-
-            "watermark": ["watermark_y_position", "watermark_size", "watermark_opacity"]
-
-        }
-
-        option_patterns = {
-
-            "resolution": r'\d{3,4}x\d{3,4}',
-            "blanking": r'[\d\.]+',
-            "bitrate": r'\d+',
-            "text_size": r'\d+',
-            "padding": r'\d+',
-            "font": r'[\w .]+',
-            "top_left": r'.+',
-            "top_center": r'.+',
-            "top_right": r'.+',
-            "bottom_left": r'.+',
-            "bottom_center": r'.+',
-            "bottom_right": r'.+',
-            "mos_tc_replacement": r'[\w .-]+',
-            "threads": r'\d+',
-            "encoding_speed": r'ultrafast|superfast|veryfast|faster|fast|medium|slow|slower|veryslow',
-            "watermark": r'.+',
-            "watermark_y_position": r'[\d\.]+',
-            "watermark_size": r'\d+',
-            "watermark_opacity": r'[\d\.]+',
-
-        }
-
-        for option in required_options:
-            if not self.options[option]:
-                errors.append(f'{option} is not defined in the preset file')
-            else:
-                if not re.match(option_patterns[option], self.options[option]):
-                    errors.append(f'{self.options[option]} is not a valid value for {option}')
-
-        for parent, children in dependencies.items():
-
-            if self.options[parent]:
-
-                for child in children:
-
-                    if not self.options[child]:
-                        errors.append(f'{child} is not defined in the preset file - required by {parent}')
-
-        #  check all requested data is present in the ale
-        for string in self.options.values():
-
-            for element in re.findall(r'(?<={).*?(?=})', string):
-
-                if element not in ale_data.columns:
-                    errors.append(f'No data for \'{element}\' in ALE')
-
-        if len(errors) > 0:
-            return False, errors
-
-        else:
-            return True, errors
 
     def compile_process(self, ale_data: dict):
 
@@ -272,6 +194,88 @@ class Processor:
                           ale_data["file_out"]]
 
         return export_process
+
+
+def verify_options(options, ale_data=None):
+    print("Verifying options")
+
+    errors = []
+
+    required_options = [
+        "resolution",
+        "blanking",
+        "bitrate",
+        "text_size",
+        "padding",
+        "font",
+        "mos_tc_replacement",
+        "threads",
+        "encoding_speed",
+    ]
+
+    dependencies = {
+
+        "watermark": ["watermark_y_position", "watermark_size", "watermark_opacity"]
+
+    }
+
+    option_patterns = {
+
+        "resolution": r'\d{3,4}x\d{3,4}',
+        "blanking": r'[\d\.]+',
+        "bitrate": r'\d+',
+        "text_size": r'\d+',
+        "padding": r'\d+',
+        "font": r'[\w .]+',
+        "top_left": r'.+',
+        "top_center": r'.+',
+        "top_right": r'.+',
+        "bottom_left": r'.+',
+        "bottom_center": r'.+',
+        "bottom_right": r'.+',
+        "mos_tc_replacement": r'[\w .-]+',
+        "threads": r'\d+',
+        "encoding_speed": r'ultrafast|superfast|veryfast|faster|fast|medium|slow|slower|veryslow',
+        "watermark": r'.+',
+        "watermark_y_position": r'[\d\.]+',
+        "watermark_size": r'\d+',
+        "watermark_opacity": r'[\d\.]+',
+
+    }
+
+    for option in required_options:
+        if not options[option]:
+            errors.append(f'{option} is not defined in the preset file')
+        else:
+            if not re.match(option_patterns[option], options[option]):
+                errors.append(f'{options[option]} is not a valid value for {option}')
+
+    for parent, children in dependencies.items():
+
+        if options[parent]:
+
+            for child in children:
+
+                if not options[child]:
+                    errors.append(f'{child} is not defined in the preset file - required by {parent}')
+
+    #  check all requested data is present in the ale
+
+    if ale_data:
+        for string in options.values():
+
+            for element in re.findall(r'(?<={).*?(?=})', string):
+
+                if element not in ale_data.columns:
+                    errors.append(f'No data for \'{element}\' in ALE')
+    else:
+        print("No ALE provided, could not check")
+
+    if len(errors) > 0:
+        return False, errors
+
+    else:
+        return True, errors
 
 
 def process_video(process_data: list):
