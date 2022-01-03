@@ -3,7 +3,6 @@ import os
 import tkinter as tk
 from tkinter import messagebox, filedialog
 
-import csv_loader
 import sas_encoder
 
 
@@ -48,13 +47,13 @@ class App(tk.Tk):
             self.label_logo.grid(column=0, row=0, columnspan=4, sticky="EW")
 
         # the burnin frame
-        self.frame_burnins = tk.LabelFrame(self, text="Burnin layout")
+        self.frame_burnins = tk.LabelFrame(self, text="Burnin layout", padx=10, pady=10)
 
-        self.label_burnin_note = tk.Label(self.frame_burnins, pady=10, text="Add text to each position to burn it "
-                                                                            "into the image\nUse curly brackets to "
-                                                                            "dynamically load metadata from the ALE "
-                                                                            "file\ne.g. {Scene}-{Take}")
-        self.label_burnin_note.grid(columnspan=3, column=0, row=0)
+        # self.label_burnin_note = tk.Label(self.frame_burnins, pady=10, text="Add text to each position to burn it "
+        #                                                                     "into the image\nUse curly brackets to "
+        #                                                                     "dynamically load metadata from the ALE "
+        #                                                                     "file\ne.g. {Scene}-{Take}")
+        # self.label_burnin_note.grid(columnspan=3, column=0, row=0)
 
         self.entry_top_left = tk.Entry(self.frame_burnins, width=14)
         self.entry_top_left.grid(column=0, row=1, sticky="EW")
@@ -87,26 +86,28 @@ class App(tk.Tk):
         self.label_font.grid(column=0, row=2, sticky="E")
         self.option_font.grid(columnspan=2, column=1, row=2, sticky="EW")
 
-        # blanking and text size
+        # blanking
         self.label_blanking = tk.Label(self, text="Blanking")
         self.entry_blanking = tk.Entry(self, width=6)
         self.entry_blanking.insert(0, "2.39")
         self.label_blanking.grid(column=0, row=3, sticky="E")
         self.entry_blanking.grid(column=1, row=3, sticky="W")
 
+        # text size
         self.label_text_size = tk.Label(self, text="Text Size")
         self.entry_text_size = tk.Entry(self, width=6)
         self.entry_text_size.insert(0, "20")
         self.label_text_size.grid(column=2, row=3, sticky="E")
         self.entry_text_size.grid(column=3, row=3, sticky="W")
 
-        # bitrate and padding
+        # bitrate
         self.label_bitrate = tk.Label(self, text="Bitrate")
         self.entry_bitrate = tk.Entry(self, width=6)
         self.entry_bitrate.insert(0, "10000")
         self.label_bitrate.grid(column=0, row=4, sticky="E")
         self.entry_bitrate.grid(column=1, row=4, sticky="W")
 
+        # padding
         self.label_padding = tk.Label(self, text="Padding")
         self.entry_padding = tk.Entry(self, width=6)
         self.entry_padding.insert(0, "5")
@@ -114,38 +115,42 @@ class App(tk.Tk):
         self.entry_padding.grid(column=3, row=4, sticky="W")
 
         # watermark options
+        # watermark position
         self.label_watermark_y_pos = tk.Label(self, text="Watermark position")
         self.entry_watermark_y_pos = tk.Entry(self, width=6)
         self.entry_watermark_y_pos.insert(0, "0.7")
         self.label_watermark_y_pos.grid(column=0, row=6, sticky="E")
         self.entry_watermark_y_pos.grid(column=1, row=6, sticky="W")
 
+        # watermark opacity
         self.label_watermark_opacity = tk.Label(self, text="Watermark opacity")
         self.entry_watermark_opacity = tk.Entry(self, width=6)
         self.entry_watermark_opacity.insert(0, "0.2")
         self.label_watermark_opacity.grid(column=0, row=7, sticky="E")
         self.entry_watermark_opacity.grid(column=1, row=7, sticky="W")
 
+        # watermark size
         self.label_watermark_size = tk.Label(self, text="Watermark size")
         self.entry_watermark_size = tk.Entry(self, width=6)
         self.entry_watermark_size.insert(0, "128")
         self.label_watermark_size.grid(column=0, row=8, sticky="E")
         self.entry_watermark_size.grid(column=1, row=8, sticky="W")
 
-        # mos
+        # MOS text
         self.label_mos_replacement = tk.Label(self, text="MOS TC")
         self.entry_mos_replacement = tk.Entry(self, width=6)
         self.entry_mos_replacement.insert(0, "MOS")
         self.label_mos_replacement.grid(column=2, row=6, sticky="E")
         self.entry_mos_replacement.grid(column=3, row=6, sticky="W")
 
-        # encoder settings
+        # processes
         self.label_processes = tk.Label(self, text="Processes")
         self.entry_processes = tk.Entry(self, width=6)
         self.entry_processes.insert(0, "8")
         self.label_processes.grid(column=2, row=7, sticky="E")
         self.entry_processes.grid(column=3, row=7, sticky="W")
 
+        # encoding speed
         self.label_encoding_speed = tk.Label(self, text="Encoding speed")
         self.items_encoding_speed = ["ultrafast",
                                      "superfast",
@@ -156,15 +161,14 @@ class App(tk.Tk):
                                      "slow",
                                      "slower",
                                      "veryslow"]
-
         self.var_encoding_speed = tk.StringVar()
         self.var_encoding_speed.set("veryfast")
         self.option_encoding_speed = tk.OptionMenu(self, self.var_encoding_speed, *self.items_encoding_speed)
         self.option_encoding_speed.config(width=4)
-
         self.label_encoding_speed.grid(column=2, row=8, sticky="E")
         self.option_encoding_speed.grid(column=3, row=8, sticky="W")
 
+        # limit audio tracks
         self.label_limit_audio = tk.Label(self, text="Limit to A1")
         self.var_limit_audio = tk.StringVar()
         self.var_limit_audio.set("True")
@@ -172,7 +176,7 @@ class App(tk.Tk):
         self.label_limit_audio.grid(column=2, row=9, sticky="E")
         self.check_limit_audio.grid(column=3, row=9, sticky="W")
 
-        # the buttons at the bottom
+        # buttons frame
         self.frame_buttons = tk.Frame(self, pady=15)
 
         self.btn_load = tk.Button(self.frame_buttons, text="Load preset", command=lambda: self.load_preset())
@@ -184,8 +188,8 @@ class App(tk.Tk):
 
         self.frame_buttons.grid(columnspan=4, column=0, row=10)
 
+        # load default preset
         if os.path.isdir("presets"):
-
             if os.path.isfile("presets/default.sasen"):
                 self.load_preset("presets/default.sasen")
 
@@ -204,7 +208,7 @@ class App(tk.Tk):
         if not file_name:
             return
 
-        options_dict = csv_loader.load_csv(file_name)
+        options_dict = sas_encoder.load_csv(file_name)
 
         self.entry_blanking.delete(0, 'end')
         self.entry_blanking.insert(0, options_dict["blanking"])

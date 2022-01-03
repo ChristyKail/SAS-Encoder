@@ -5,7 +5,7 @@ import os
 import sys
 import argparse
 import re
-import csv_loader
+import csv
 import datetime
 
 
@@ -361,6 +361,20 @@ def escaped(string: str):
     return "\'" + string + "\'"
 
 
+def load_csv(file_name):
+
+    if not os.path.isfile(file_name):
+
+        return None
+
+    with open(file_name) as file_handler:
+
+        file_reader = csv.reader(file_handler)
+        dictionary = {rows[0]: rows[1] for rows in file_reader if rows[0]}
+
+    return dictionary
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -374,4 +388,4 @@ if __name__ == "__main__":
     else:
         input_filename = args.input
 
-    processor = Processor(input_filename, csv_loader.load_csv("presets/default.sasen"))
+    processor = Processor(input_filename, load_csv("presets/default.sasen"))
