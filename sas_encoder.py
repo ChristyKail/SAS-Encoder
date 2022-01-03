@@ -6,6 +6,7 @@ import sys
 import argparse
 import re
 import csv_loader
+import datetime
 
 
 class Processor:
@@ -17,6 +18,8 @@ class Processor:
         self.my_input_ale = my_input_ale
         self.my_input_dir = os.path.dirname(my_input_ale)
         self.my_output_dir = os.path.join(os.path.dirname(self.my_input_dir), "H264")
+
+        logs = [f"New job started at {datetime.datetime.now()}"]
 
         # initialise output dir
         if not os.path.isdir(self.my_output_dir):
@@ -30,6 +33,7 @@ class Processor:
             df = load_ale_as_df(my_input_ale)
         except:
             print("ALE loading failed for some reason *shrug*")
+
             sys.exit(1)
 
         # verify the options and ale
@@ -64,6 +68,7 @@ class Processor:
                 df["file_out"][index] = os.path.join(self.my_output_dir, value + ".mov")
             else:
                 print(f"No data found for {value.strip('.mov')}")
+                logs.append(f"No data found for {value.strip('.mov')}")
                 df.drop(index)
 
         burnin_names = ["top_left", "top_center", "top_right", "bottom_left", "bottom_center", "bottom_right"]
@@ -95,11 +100,23 @@ class Processor:
 
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
+                if result.returncode != 0:
+
+                    print("There may have been some issues....", "\n", result.stderr)
                 complete_files = complete_files + 1
 
                 print_progress_bar(complete_files, total_files)
 
-        print("\x07")
+                logs.append(result)
+
+        with open("sasen_logs.txt", 'a') as log_file:
+
+            for log_line in logs:
+                log_file.write(f'\n{log_line}')
+            log_file.write("\nProcess complete")
+
+        if __name__ == "__main__":
+            print("\x07")
 
     def compile_process(self, ale_data: dict):
 

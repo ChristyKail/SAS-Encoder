@@ -31,44 +31,43 @@ class App(tk.Tk):
         self.attributes("-alpha", 1)
         self.title("Cinelab Film & Digital - SAS encoder")
 
+        # noinspection PyTypeChecker
         self.columnconfigure(tuple(range(4)), weight=1, minsize=5, pad=10)
+        # noinspection PyTypeChecker
         self.rowconfigure(tuple(range(8)), weight=1, pad=5)
 
         try:
             self.logo_image = tk.PhotoImage(file="CFD-Icon_Standard.png")
             self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file="CFD-Icon_Standard.png"))
 
-        except FileNotFoundError:
-            print("Logo failed to load")
+        except Exception as exception:
+            print("Logo failed to load. Reason:", exception)
 
         else:
             self.label_logo = tk.Label(self, image=self.logo_image, pady=10)
             self.label_logo.grid(column=0, row=0, columnspan=4, sticky="EW")
 
-        # input file
-        # self.label_input_file = tk.Label(self, text="Input ALE")
-        # self.entry_input_file = tk.Entry(self)
-        # self.entry_input_file.insert(0, "")
-        # self.btn_input_file = tk.Button(self, text="Open", command=self.open_input_file)
-        # self.label_input_file.grid(column=0, row=1, sticky="E")
-        # self.entry_input_file.grid(columnspan=2, column=1, row=1, sticky="EW")
-        # self.btn_input_file.grid(column=3, row=1, sticky="W")
-
         # the burnin frame
         self.frame_burnins = tk.LabelFrame(self, text="Burnin layout")
 
+        self.label_burnin_note = tk.Label(self.frame_burnins, pady=10, text="Add text to each position to burn it "
+                                                                            "into the image\nUse curly brackets to "
+                                                                            "dynamically load metadata from the ALE "
+                                                                            "file\ne.g. {Scene}-{Take}")
+        self.label_burnin_note.grid(columnspan=3, column=0, row=0)
+
         self.entry_top_left = tk.Entry(self.frame_burnins, width=14)
-        self.entry_top_left.grid(column=0, row=0, sticky="EW")
+        self.entry_top_left.grid(column=0, row=1, sticky="EW")
         self.entry_top_center = tk.Entry(self.frame_burnins, width=14)
-        self.entry_top_center.grid(column=1, row=0, sticky="EW")
+        self.entry_top_center.grid(column=1, row=1, sticky="EW")
         self.entry_top_right = tk.Entry(self.frame_burnins, width=14)
-        self.entry_top_right.grid(column=2, row=0, sticky="EW")
+        self.entry_top_right.grid(column=2, row=1, sticky="EW")
 
         self.label_watermark = tk.Label(self.frame_burnins, text="Watermark")
         self.entry_watermark = tk.Entry(self.frame_burnins, width=20)
 
-        self.label_watermark.grid(column=1, row=1, sticky="EW", pady=(10, 0))
-        self.entry_watermark.grid(columnspan=3, column=0, row=2, sticky="EW", pady=(0, 10))
+        self.label_watermark.grid(column=1, row=2, sticky="EW", pady=(10, 0))
+        self.entry_watermark.grid(columnspan=3, column=0, row=3, sticky="EW", pady=(0, 10))
 
         self.entry_bottom_left = tk.Entry(self.frame_burnins, width=14)
         self.entry_bottom_left.grid(column=0, row=4, sticky="EW")
@@ -193,13 +192,6 @@ class App(tk.Tk):
         else:
             os.mkdir("presets")
 
-    # def open_input_file(self):
-    #
-    #     file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
-    #                                            filetypes=[("ALE files", "*.ale")])
-    #     self.entry_input_file.delete(0, 'end')
-    #     self.entry_input_file.insert(0, file_name)
-
     def load_preset(self, filename=None):
 
         if not filename:
@@ -294,7 +286,7 @@ class App(tk.Tk):
 
         self.attributes("-alpha", 0.5)
         self.update()
-        processor = sas_encoder.Processor(file_name, options_dict)
+        sas_encoder.Processor(file_name, options_dict)
         self.attributes("-alpha", 1)
         self.lift()
 
