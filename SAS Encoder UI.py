@@ -46,22 +46,45 @@ class App(tk.Tk):
             self.label_logo.grid(column=0, row=0, columnspan=4, sticky="EW")
 
         # input file
-        self.label_input_file = tk.Label(self, text="Input ALE")
-        self.entry_input_file = tk.Entry(self)
-        self.entry_input_file.insert(0, "")
-        self.btn_input_file = tk.Button(self, text="Open", command=self.open_input_file)
-        self.label_input_file.grid(column=0, row=1, sticky="E")
-        self.entry_input_file.grid(columnspan=2, column=1, row=1, sticky="EW")
-        self.btn_input_file.grid(column=3, row=1, sticky="W")
+        # self.label_input_file = tk.Label(self, text="Input ALE")
+        # self.entry_input_file = tk.Entry(self)
+        # self.entry_input_file.insert(0, "")
+        # self.btn_input_file = tk.Button(self, text="Open", command=self.open_input_file)
+        # self.label_input_file.grid(column=0, row=1, sticky="E")
+        # self.entry_input_file.grid(columnspan=2, column=1, row=1, sticky="EW")
+        # self.btn_input_file.grid(column=3, row=1, sticky="W")
+
+        # the burnin frame
+        self.frame_burnins = tk.LabelFrame(self, text="Burnin layout")
+
+        self.entry_top_left = tk.Entry(self.frame_burnins, width=14)
+        self.entry_top_left.grid(column=0, row=0, sticky="EW")
+        self.entry_top_center = tk.Entry(self.frame_burnins, width=14)
+        self.entry_top_center.grid(column=1, row=0, sticky="EW")
+        self.entry_top_right = tk.Entry(self.frame_burnins, width=14)
+        self.entry_top_right.grid(column=2, row=0, sticky="EW")
+
+        self.label_watermark = tk.Label(self.frame_burnins, text="Watermark")
+        self.entry_watermark = tk.Entry(self.frame_burnins, width=20)
+
+        self.label_watermark.grid(column=1, row=1, sticky="EW", pady=(10, 0))
+        self.entry_watermark.grid(columnspan=3, column=0, row=2, sticky="EW", pady=(0, 10))
+
+        self.entry_bottom_left = tk.Entry(self.frame_burnins, width=14)
+        self.entry_bottom_left.grid(column=0, row=4, sticky="EW")
+        self.entry_bottom_center = tk.Entry(self.frame_burnins, width=14)
+        self.entry_bottom_center.grid(column=1, row=4, sticky="EW")
+        self.entry_bottom_right = tk.Entry(self.frame_burnins, width=14)
+        self.entry_bottom_right.grid(column=2, row=4, sticky="EW")
+
+        self.frame_burnins.grid(columnspan=4, column=0, row=1)
 
         # font
         self.label_font = tk.Label(self, text="Font")
-
         self.items_font = get_all_fonts()
         self.var_font = tk.StringVar()
         self.var_font.set(self.items_font[0])
         self.option_font = tk.OptionMenu(self, self.var_font, *self.items_font)
-        # self.option_font.config()
         self.label_font.grid(column=0, row=2, sticky="E")
         self.option_font.grid(columnspan=2, column=1, row=2, sticky="EW")
 
@@ -91,31 +114,6 @@ class App(tk.Tk):
         self.label_padding.grid(column=2, row=4, sticky="E")
         self.entry_padding.grid(column=3, row=4, sticky="W")
 
-        # the burnin frame
-        self.frame_burnins = tk.LabelFrame(self, text="Burnin layout")
-
-        self.entry_top_left = tk.Entry(self.frame_burnins, width=14)
-        self.entry_top_left.grid(column=0, row=0, sticky="EW")
-        self.entry_top_center = tk.Entry(self.frame_burnins, width=14)
-        self.entry_top_center.grid(column=1, row=0, sticky="EW")
-        self.entry_top_right = tk.Entry(self.frame_burnins, width=14)
-        self.entry_top_right.grid(column=2, row=0, sticky="EW")
-
-        self.label_watermark = tk.Label(self.frame_burnins, text="Watermark")
-        self.entry_watermark = tk.Entry(self.frame_burnins, width=20)
-
-        self.label_watermark.grid(column=1, row=1, sticky="EW", pady=(10, 0))
-        self.entry_watermark.grid(columnspan=3, column=0, row=2, sticky="EW", pady=(0, 10))
-
-        self.entry_bottom_left = tk.Entry(self.frame_burnins, width=14)
-        self.entry_bottom_left.grid(column=0, row=4, sticky="EW")
-        self.entry_bottom_center = tk.Entry(self.frame_burnins, width=14)
-        self.entry_bottom_center.grid(column=1, row=4, sticky="EW")
-        self.entry_bottom_right = tk.Entry(self.frame_burnins, width=14)
-        self.entry_bottom_right.grid(column=2, row=4, sticky="EW")
-
-        self.frame_burnins.grid(columnspan=4, column=0, row=5)
-
         # watermark options
         self.label_watermark_y_pos = tk.Label(self, text="Watermark position")
         self.entry_watermark_y_pos = tk.Entry(self, width=6)
@@ -135,7 +133,7 @@ class App(tk.Tk):
         self.label_watermark_size.grid(column=0, row=8, sticky="E")
         self.entry_watermark_size.grid(column=1, row=8, sticky="W")
 
-        # encoder settings
+        # mos
         self.label_mos_replacement = tk.Label(self, text="MOS TC")
         self.entry_mos_replacement = tk.Entry(self, width=6)
         self.entry_mos_replacement.insert(0, "MOS")
@@ -176,7 +174,6 @@ class App(tk.Tk):
         self.check_limit_audio.grid(column=3, row=9, sticky="W")
 
         # the buttons at the bottom
-
         self.frame_buttons = tk.Frame(self, pady=15)
 
         self.btn_load = tk.Button(self.frame_buttons, text="Load preset", command=lambda: self.load_preset())
@@ -196,12 +193,12 @@ class App(tk.Tk):
         else:
             os.mkdir("presets")
 
-    def open_input_file(self):
-
-        file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
-                                               filetypes=[("ALE files", "*.ale")])
-        self.entry_input_file.delete(0, 'end')
-        self.entry_input_file.insert(0, file_name)
+    # def open_input_file(self):
+    #
+    #     file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
+    #                                            filetypes=[("ALE files", "*.ale")])
+    #     self.entry_input_file.delete(0, 'end')
+    #     self.entry_input_file.insert(0, file_name)
 
     def load_preset(self, filename=None):
 
@@ -281,9 +278,12 @@ class App(tk.Tk):
 
     def execute(self):
 
+        file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
+                                               filetypes=[("ALE files", "*.ale")])
+
         options_dict = self.compile_dict()
 
-        ale_data = sas_encoder.load_ale_as_df(self.entry_input_file.get())
+        ale_data = sas_encoder.load_ale_as_df(file_name)
 
         is_good, errors = sas_encoder.verify_options(options_dict, ale_data)
 
@@ -294,7 +294,7 @@ class App(tk.Tk):
 
         self.attributes("-alpha", 0.5)
         self.update()
-        processor = sas_encoder.Processor(self.entry_input_file.get(), options_dict)
+        processor = sas_encoder.Processor(file_name, options_dict)
         self.attributes("-alpha", 1)
         self.lift()
 
@@ -322,7 +322,7 @@ class App(tk.Tk):
             "threads": self.entry_processes.get(),
             "encoding_speed": self.var_encoding_speed.get(),
 
-            "limit_audio_tracks":self.var_limit_audio.get(),
+            "limit_audio_tracks": self.var_limit_audio.get(),
 
             "watermark": self.entry_watermark.get(),
             "watermark_y_position": self.entry_watermark_y_pos.get(),

@@ -13,7 +13,7 @@ bottom_right,
 mos_tc_replacement,MOS
 threads,4
 encoding_speed,veryfast
-limit_audio_tracks,
+limit_audio_tracks,False
 watermark,CINELAB - Test material
 watermark_y_position,0.75
 watermark_size,100
