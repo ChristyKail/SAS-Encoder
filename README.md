@@ -12,7 +12,9 @@ Recommended python version 3.9.9 (check by running `python3 --version`)
 - Extract files to a folder where you want to install the tool. This should not be moved after installation.
 - Right click the `first_time_run.command` file and click `open` to begin setup. You may be prompted to allow "A program
   downloaded from the internet"
-- The script will run through initial setup, downloading `pandas` `tkinter` and `ffmpeg` from Pip and Brew.
+- The installer will check to see if Brew is installed. If it isn't, you will be prompted for your password to allow it
+  to be installed.
+- The installer will then run through initial setup, downloading `pandas` `tkinter` and `ffmpeg` from Pip and Brew.
 - When the installation is complete, the main window will open and a `run.command` file will be created in the folder.
 - You can rename and move this file to wherever you want. Double-clicking it will run the script from anywhere.
 - If the main window *doesn't* open and the terminal shows `[process completed]`, try re-running the setup.
