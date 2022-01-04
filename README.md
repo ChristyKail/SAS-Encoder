@@ -4,15 +4,18 @@ Tool for batch encoding DNxHD files based on an Avid Log Exchange (ALE) file
 
 To report bugs or for feature requests, email christy.kail@cinelab.co.uk
 
+Recommended python version 3.9.9 (check by running `python3 --version`)
+
 #### Installation instructions
 
-- Recommended python version 3.9.9 (check by running `python3 --version`)
-- Brew should be used for installing dependencies, make sure that is installed.
-- Extract files to a folder where you want to install the tool. This should not be moved.
-- Double-click the `first_time_run.command` file to begin setup.
+- From the Github page, click the green `Code` button, then `Download zip`
+- Extract files to a folder where you want to install the tool. This should not be moved after installation.
+- Right click the `first_time_run.command` file and click `open` to begin setup. You may be prompted to allow "A program
+  downloaded from the internet"
 - The script will run through initial setup, downloading `pandas` `tkinter` and `ffmpeg` from Pip and Brew.
-- When the installation is complete, a `run.command` file will be created in the folder.
+- When the installation is complete, the main window will open and a `run.command` file will be created in the folder.
 - You can rename and move this file to wherever you want. Double-clicking it will run the script from anywhere.
+- If the main window *doesn't* open and the terminal shows `[process completed]`, try re-running the setup.
 - If you ever need to move the actual install, delete the `run.command` from the install folder and
   rerun `first_time_run.command`. This will create a new `run.command` linked to the new location.
 
