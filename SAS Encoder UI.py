@@ -2,9 +2,8 @@ import csv
 import os
 import tkinter as tk
 from tkinter import messagebox, filedialog
-
 import sas_encoder
-
+from first_run import first_run
 
 def get_all_fonts():
     font_list = []
@@ -180,8 +179,8 @@ class App(tk.Tk):
         self.frame_buttons = tk.Frame(self, pady=15)
 
         self.btn_load = tk.Button(self.frame_buttons, text="Load preset", command=lambda: self.load_preset())
-        self.btn_generate = tk.Button(self.frame_buttons, text="Save preset", command=lambda: self.generate())
-        self.btn_execute = tk.Button(self.frame_buttons, text="Convert files", command=lambda: self.execute())
+        self.btn_generate = tk.Button(self.frame_buttons, text="Save preset", command=lambda: self.generate_preset())
+        self.btn_execute = tk.Button(self.frame_buttons, text="Convert files", command=lambda: self.run_process())
         self.btn_load.grid(column=0, row=0, sticky="EW")
         self.btn_generate.grid(column=1, row=0, sticky="EW")
         self.btn_execute.grid(column=2, row=0, sticky="EW")
@@ -212,11 +211,13 @@ class App(tk.Tk):
 
         self.entry_blanking.delete(0, 'end')
         self.entry_blanking.insert(0, options_dict["blanking"])
+
         self.entry_bitrate.delete(0, 'end')
         self.entry_bitrate.insert(0, options_dict["bitrate"])
 
         self.entry_text_size.delete(0, 'end')
         self.entry_text_size.insert(0, options_dict["text_size"])
+
         self.entry_padding.delete(0, 'end')
         self.entry_padding.insert(0, options_dict["padding"])
 
@@ -224,14 +225,19 @@ class App(tk.Tk):
 
         self.entry_top_left.delete(0, 'end')
         self.entry_top_left.insert(0, options_dict["top_left"])
+
         self.entry_top_center.delete(0, 'end')
         self.entry_top_center.insert(0, options_dict["top_center"])
+
         self.entry_top_right.delete(0, 'end')
         self.entry_top_right.insert(0, options_dict["top_right"])
+
         self.entry_bottom_left.delete(0, 'end')
         self.entry_bottom_left.insert(0, options_dict["bottom_left"])
+
         self.entry_bottom_center.delete(0, 'end')
         self.entry_bottom_center.insert(0, options_dict["bottom_center"])
+
         self.entry_bottom_right.delete(0, 'end')
         self.entry_bottom_right.insert(0, options_dict["bottom_right"])
 
@@ -254,9 +260,9 @@ class App(tk.Tk):
         self.entry_watermark_opacity.delete(0, 'end')
         self.entry_watermark_opacity.insert(0, options_dict["watermark_opacity"])
 
-    def generate(self):
+    def generate_preset(self):
 
-        options_dict = self.compile_dict()
+        options_dict = self.compile_dict_from_ui()
 
         is_good, errors = sas_encoder.verify_options(options_dict)
 
@@ -272,12 +278,12 @@ class App(tk.Tk):
                 for key, value in options_dict.items():
                     writer.writerow([key, value])
 
-    def execute(self):
+    def run_process(self):
 
         file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
                                                filetypes=[("ALE files", "*.ale")])
 
-        options_dict = self.compile_dict()
+        options_dict = self.compile_dict_from_ui()
 
         ale_data = sas_encoder.load_ale_as_df(file_name)
 
@@ -294,7 +300,7 @@ class App(tk.Tk):
         self.attributes("-alpha", 1)
         self.lift()
 
-    def compile_dict(self):
+    def compile_dict_from_ui(self):
 
         options_dict = {
 
@@ -330,5 +336,8 @@ class App(tk.Tk):
 
 
 if __name__ == "__main__":
+
+    first_run()
+
     app = App()
     app.mainloop()
