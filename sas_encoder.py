@@ -359,7 +359,7 @@ def get_font_path_mac(name: str):
 
 
 def escaped(string: str):
-    return "\'" + string.replace(":", "\\:") + "\'"
+    return "\'" + string.replace(":", "\\:").replace(" ", "\\ ") + "\'"
 
 
 def load_csv(file_name):

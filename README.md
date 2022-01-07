@@ -37,8 +37,10 @@ Recommended python version 3.9.9 (check by running `python3 --version`)
 - __Burnin layout__ - typing text in each input box will burn it into the relevant corner
   - Using curly brackets will load that data column from ALE, e.g. `Shot` will burn in "Shot", but `{Shot}` will burn in "25B-1A" or whatever the `shot` field is for that clip. These are called 'dynamic elements'
   - Multiple static and dynamic can be combined, e.g. `Shot {Scene} {Take}` will burn in "Shot 25B 1A"
-  - If timecode like data is found in a dynamic element (e.g `00:00:00:00`), this will be assumed to be a starting timecode value, and the burnin will run on from that point.
-  - A timecode element will always move to the end of a burnin, no matter where it is placed in the string, e.g. `{Start} TC` will output "TC19:26:23:04".  They will also ignore any spaces around them.
+  - If timecode like data is found in a dynamic element (e.g `00:00:00:00`), this will be assumed to be a starting
+    timecode value, and the burnin will run on from that point.
+  - A timecode element will always move to the end of a burnin, no matter where it is placed in the string,
+    e.g. `{Start} TC` will output "TC 19:26:23:04".
   - Only one timecode element can be added per burnin position.
 - __Watermark__ - the watermark can be entered in a similar way to other burn ins
   - Only one dynamic element is supported in the watermark
