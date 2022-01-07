@@ -1,12 +1,13 @@
-import concurrent.futures
-import ale
-import subprocess
-import os
-import sys
 import argparse
-import re
+import concurrent.futures
 import csv
 import datetime
+import os
+import re
+import subprocess
+import sys
+
+import ale
 
 
 class Processor:
@@ -154,7 +155,7 @@ class Processor:
             # special case for timecode elements
             timecode_match = re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data)
             if timecode_match:
-                tc_start = escaped(timecode_match.group().replace(":", "\\:"))
+                tc_start = escaped(timecode_match.group())
                 tc_prefix = this_data.replace(timecode_match.group(), "")
 
                 filter_string = "".join(["drawtext=fontfile=",
@@ -358,7 +359,7 @@ def get_font_path_mac(name: str):
 
 
 def escaped(string: str):
-    return "\'" + string + "\'"
+    return "\'" + string.replace(":", "\\:") + "\'"
 
 
 def load_csv(file_name):
