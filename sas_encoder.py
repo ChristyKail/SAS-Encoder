@@ -12,9 +12,10 @@ import ale
 
 class Processor:
 
-    def __init__(self, my_input_ale: str, options: dict):
+    def __init__(self, my_input_ale: str, options: dict, manager=None):
 
         self.options = options
+        self.manager = manager
 
         self.my_input_ale = my_input_ale
         self.my_input_dir = os.path.dirname(my_input_ale)
@@ -98,15 +99,19 @@ class Processor:
             futures = {executor.submit(process_video, process): process for process in processes_list}
 
             print_progress_bar(complete_files, total_files, suffix="")
+            if manager:
+                manager.update_progress(complete_files / total_files * 100)
 
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result.returncode != 0:
-
                     print("There may have been some issues....", "\n", result.stderr)
                 complete_files = complete_files + 1
 
                 print_progress_bar(complete_files, total_files)
+
+                if manager:
+                    manager.update_progress(complete_files / total_files * 100)
 
                 logs.append(result)
 

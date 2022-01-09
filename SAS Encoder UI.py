@@ -2,8 +2,11 @@ import csv
 import os
 import tkinter as tk
 from tkinter import messagebox, filedialog
+from tkinter.ttk import Progressbar
+
 import sas_encoder
 from first_run import first_run
+
 
 def get_all_fonts():
     font_list = []
@@ -29,6 +32,8 @@ class App(tk.Tk):
         self.attributes("-alpha", 1)
         self.title("Cinelab Film & Digital - SAS encoder")
 
+        self.progress_bar_shown = False
+
         # noinspection PyTypeChecker
         self.columnconfigure(tuple(range(4)), weight=1, minsize=5, pad=10)
         # noinspection PyTypeChecker
@@ -47,12 +52,6 @@ class App(tk.Tk):
 
         # the burnin frame
         self.frame_burnins = tk.LabelFrame(self, text="Burnin layout", padx=10, pady=10)
-
-        # self.label_burnin_note = tk.Label(self.frame_burnins, pady=10, text="Add text to each position to burn it "
-        #                                                                     "into the image\nUse curly brackets to "
-        #                                                                     "dynamically load metadata from the ALE "
-        #                                                                     "file\ne.g. {Scene}-{Take}")
-        # self.label_burnin_note.grid(columnspan=3, column=0, row=0)
 
         self.entry_top_left = tk.Entry(self.frame_burnins, width=14)
         self.entry_top_left.grid(column=0, row=1, sticky="EW")
@@ -187,6 +186,10 @@ class App(tk.Tk):
 
         self.frame_buttons.grid(columnspan=4, column=0, row=10)
 
+        # progress bar
+        self.progress_bar = Progressbar(self, orient="horizontal", length=100, mode='determinate')
+        # self.progress_bar.grid(column=0, row=15, columnspan=4, sticky="EW", padx=10, pady=10)
+
         # load default preset
         if os.path.isdir("presets"):
             if os.path.isfile("presets/default.sasen"):
@@ -294,10 +297,8 @@ class App(tk.Tk):
             messagebox.showwarning(title="Some errors occurred", message=message)
             return
 
-        self.attributes("-alpha", 0.5)
         self.update()
-        sas_encoder.Processor(file_name, options_dict)
-        self.attributes("-alpha", 1)
+        sas_encoder.Processor(file_name, options_dict, manager=self)
         self.lift()
 
     def compile_dict_from_ui(self):
@@ -334,9 +335,21 @@ class App(tk.Tk):
 
         return options_dict
 
+    def update_progress(self, percent, suffix=""):
+
+        if not self.progress_bar_shown:
+            self.progress_bar_shown = True
+            self.progress_bar.grid(column=0, row=15, columnspan=4, sticky="EW", padx=10, pady=10)
+
+        self.progress_bar["value"] = percent
+        self.update()
+
+        if percent >= 100:
+            self.progress_bar.grid_remove()
+            self.progress_bar_shown = False
+
 
 if __name__ == "__main__":
-
     first_run()
 
     app = App()
