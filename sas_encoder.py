@@ -130,13 +130,21 @@ class Processor:
 
         # create output blanking
         if self.options["blanking"]:
-            aspect_ratio = float(self.options["blanking"])
-            blanking_height = (1080 - (1920 / aspect_ratio)) / 2
-            blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
-            blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
-                blanking_height) + ":thickness=fill:color=black"
-            ffmpeg_filters.append(blanking_top_string)
-            ffmpeg_filters.append(blanking_bottom_string)
+
+            if self.options["blanking"] == "NONE":
+
+                pass
+
+            else:
+
+                aspect_ratio = float(self.options["blanking"])
+                blanking_height = (1080 - (1920 / aspect_ratio)) / 2
+                blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
+                blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
+                    blanking_height) + ":thickness=fill:color=black"
+
+                ffmpeg_filters.append(blanking_top_string)
+                ffmpeg_filters.append(blanking_bottom_string)
 
         # create a filter for each burnin position
         for this_position, this_data in self.burnin_data_map.items():
@@ -215,7 +223,7 @@ class Processor:
         export_process = ["ffmpeg",
                           "-y",
                           "-i", ale_data["file_in"],
-                          "-loglevel", "warning"
+                          "-loglevel", "warning",
                           ] + mapping + [
                              "-filter_complex", ",".join(ffmpeg_filters),
                              "-codec:v", "libx264",
