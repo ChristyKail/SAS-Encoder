@@ -131,7 +131,7 @@ class Processor:
         # create output blanking
         if self.options["blanking"]:
 
-            if self.options["blanking"] == "NONE":
+            if self.options["blanking"] == "NONE" or self.options["blanking"] == "0":
 
                 pass
 
@@ -201,6 +201,8 @@ class Processor:
 
                 watermark_text = watermark_text.replace(matched_text, ale_data[ale_col_name])
 
+            watermark_text = escaped(watermark_text)
+
             watermark_string = "".join(["drawtext=fontfile=",
                                         self.options["font"],
                                         ":", watermark_text,
@@ -267,7 +269,7 @@ def verify_options(options: dict, ale_data=None):
     option_patterns = {
 
         "resolution": r'\d{3,4}x\d{3,4}',
-        "blanking": r'[\d\.]+',
+        "blanking": r'[\d\.]+|NONE|^$',
         "bitrate": r'\d+',
         "text_size": r'\d+',
         "padding": r'\d+',
@@ -372,7 +374,12 @@ def get_font_path_mac(name: str):
 
 
 def escaped(string: str):
-    return "\'" + string.replace(":", "\\:").replace(" ", "\\ ") + "\'"
+    characters = [":", " ", ","]
+
+    for c in characters:
+        string = string.replace(c, f'\\{c}')
+
+    return "\'" + string + "\'"
 
 
 def load_csv(file_name):

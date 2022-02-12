@@ -85,7 +85,7 @@ class App(tk.Tk):
         self.option_font.grid(columnspan=2, column=1, row=2, sticky="EW")
 
         # blanking
-        self.label_blanking = tk.Label(self, text="Blanking")
+        self.label_blanking = tk.Label(self, text="Blanking (0 for none)")
         self.entry_blanking = tk.Entry(self, width=6)
         self.entry_blanking.insert(0, "2.39")
         self.label_blanking.grid(column=0, row=3, sticky="E")
@@ -282,7 +282,6 @@ class App(tk.Tk):
                     writer.writerow([key, value])
 
     def run_process(self):
-
         file_name = filedialog.askopenfilename(parent=self, title="Select metadata ALE",
                                                filetypes=[("ALE files", "*.ale")])
 
