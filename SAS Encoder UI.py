@@ -30,7 +30,7 @@ class App(tk.Tk):
         super().__init__()
 
         self.attributes("-alpha", 1)
-        self.title("Cinelab Film & Digital - SAS encoder")
+        self.title(f"Cinelab Film & Digital - SAS encoder - version {sas_encoder.__version__}")
 
         self.progress_bar_shown = False
 

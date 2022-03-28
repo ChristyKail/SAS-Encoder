@@ -1,20 +1,20 @@
-resolution,1920x1080
-blanking            ,0
-bitrate,5000
-text_size,20
-padding,5
-font,Franklin Gothic Medium.ttf
-top_left,TC {Start}
-top_center,{Tape}
-top_right,SND{Auxiliary TC1}
-bottom_left,{Shot}
-bottom_center,{Display name}
-bottom_right        ,"Test, burnin"
-mos_tc_replacement,MOS
-threads,4
-encoding_speed,veryfast
-limit_audio_tracks,False
-watermark           ,"Test, watermark"
+resolution          ,1920x1080
+blanking            ,2.39
+bitrate             ,5000
+text_size           ,20
+padding             ,5
+font                ,Franklin Gothic Medium.ttf
+top_left            ,
+top_center          ,
+top_right           ,
+bottom_left         ,{Tape}
+bottom_center       ,
+bottom_right        ,{Start}
+mos_tc_replacement  ,MOS
+threads             ,8
+encoding_speed      ,veryfast
+limit_audio_tracks  ,False
+watermark           ,
 watermark_y_position,0.75
-watermark_size,100
-watermark_opacity,0.2
+watermark_size      ,80
+watermark_opacity   ,0.15

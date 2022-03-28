@@ -9,16 +9,17 @@ import sys
 
 import ale
 
+__version__ = "28-03-2022"
+
 
 class Processor:
 
-    def __init__(self, my_input_ale: str, options: dict, manager=None):
+    def __init__(self, ale_filename: str, options: dict, manager=None):
 
         self.options = options
         self.manager = manager
 
-        self.my_input_ale = my_input_ale
-        self.my_input_dir = os.path.dirname(my_input_ale)
+        self.my_input_dir = os.path.dirname(ale_filename)
         self.my_output_dir = os.path.join(os.path.dirname(self.my_input_dir), "H264")
 
         logs = [f"New job started at {datetime.datetime.now()}"]
@@ -32,11 +33,21 @@ class Processor:
 
         # load the ale
         try:
-            df = load_ale_as_df(my_input_ale)
+            self.ale_object = ale.Ale(ale_filename)
         except:
             print("ALE loading failed for some reason *shrug*")
 
             sys.exit(1)
+
+        df = self.ale_object.dataframe
+        fps = self.ale_object.heading['FPS']
+        print(fps)
+        df['FPS'] = fps
+
+        df['Name'] = df['Name'].str.replace('.mxf', '', regex=False)
+
+        if 'Name' not in df.columns:
+            raise KeyError('Name not in Datafame\n' + str(df.columns))
 
         # verify the options and ale
         verified, errors = verify_options(self.options, df)
@@ -63,7 +74,7 @@ class Processor:
         df["file_in"], df["file_out"] = "", ""
 
         for index, value in enumerate(df["Name"]):
-            if value + ".mov" in files_in_dir:
+            if value.replace(u"\uFFFD", '_') + ".mov" in files_in_dir:
 
                 print(f"Found {value}")
                 df["file_in"][index] = os.path.join(self.my_input_dir, value + ".mov")
@@ -138,13 +149,21 @@ class Processor:
             else:
 
                 aspect_ratio = float(self.options["blanking"])
-                blanking_height = (1080 - (1920 / aspect_ratio)) / 2
-                blanking_top_string = "drawbox=x=0:y=0:h=" + str(blanking_height) + ":thickness=fill:color=black"
-                blanking_bottom_string = "drawbox=x=0:y=" + str(1080 - blanking_height) + ":h=" + str(
-                    blanking_height) + ":thickness=fill:color=black"
 
-                ffmpeg_filters.append(blanking_top_string)
-                ffmpeg_filters.append(blanking_bottom_string)
+                if aspect_ratio >= (16 / 9):
+                    # letterboxing
+                    blank_h = round((1080 - (1920 / aspect_ratio)) / 2)
+                    blanking_a = f"drawbox=x=0:y=0:h={str(blank_h)}:thickness=fill:color=black"
+                    blanking_b = f"drawbox=x=0:y={str(1080 - blank_h)}:h={str(blank_h)}:thickness=fill:color=black"
+
+                else:
+                    # pillarboxing
+                    blank_w = round((1920 - (1080 * aspect_ratio)) / 2)
+                    blanking_a = f"drawbox=x=0:y=0:w={str(blank_w)}:thickness=fill:color=black"
+                    blanking_b = f"drawbox=x={str(1920 - blank_w)}:y=0:w={str(blank_w)}:thickness=fill:color=black"
+
+                ffmpeg_filters.append(blanking_a)
+                ffmpeg_filters.append(blanking_b)
 
         # create a filter for each burnin position
         for this_position, this_data in self.burnin_data_map.items():
@@ -175,7 +194,7 @@ class Processor:
                                          self.options["font"],
                                          ":", escaped(tc_prefix),
                                          ":timecode=", tc_start,
-                                         ":rate=24",
+                                         ":rate=", str(ale_data['FPS']),
                                          ":fontsize=", self.options["text_size"],
                                          ":", self.burnin_positions_map[this_position],
                                          ":fontcolor=DarkGray"
@@ -218,16 +237,19 @@ class Processor:
         if self.options["limit_audio_tracks"] == "True":
             mapping = ["-map", "0:v",
                        "-map", "0:a:0?"]
-
         else:
-            mapping = []
+            mapping = ["-map", "0"]
+
+        if len(ffmpeg_filters):
+            filters = ["-filter_complex", ",".join(ffmpeg_filters)]
+        else:
+            filters = []
 
         export_process = ["ffmpeg",
                           "-y",
                           "-i", ale_data["file_in"],
                           "-loglevel", "warning",
-                          ] + mapping + [
-                             "-filter_complex", ",".join(ffmpeg_filters),
+                          ] + mapping + filters + [
                              "-codec:v", "libx264",
                              "-preset", self.options["encoding_speed"],
                              "-b:v", f'{bitrate}k',
@@ -374,7 +396,8 @@ def get_font_path_mac(name: str):
 
 
 def escaped(string: str):
-    characters = [":", " ", ","]
+    characters = [' ', '@', '`', '!', '#', '$', '%', '&', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '[', '<',
+                  '|', '=', ']', '>', '~', '?']
 
     for c in characters:
         string = string.replace(c, f'\\{c}')
@@ -383,13 +406,10 @@ def escaped(string: str):
 
 
 def load_csv(file_name):
-
     if not os.path.isfile(file_name):
-
         return None
 
     with open(file_name) as file_handler:
-
         file_reader = csv.reader(file_handler)
         dictionary = {rows[0]: rows[1] for rows in file_reader if rows[0]}
 
