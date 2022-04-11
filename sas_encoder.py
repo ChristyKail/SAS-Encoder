@@ -124,7 +124,8 @@ class Processor:
                 if manager:
                     manager.update_progress(complete_files / total_files * 100)
 
-                logs.append(result)
+                logs.append(' '.join(result.args))
+                logs.append(result.stderr.decode("utf-8"))
 
         with open("sasen_logs.txt", 'a') as log_file:
 
