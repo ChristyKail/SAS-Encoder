@@ -9,7 +9,7 @@ import sys
 
 import ale
 
-__version__ = "28-03-2022"
+__version__ = "1.0.0"
 
 
 class Processor:
