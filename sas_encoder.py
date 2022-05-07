@@ -9,7 +9,7 @@ import sys
 
 import ale
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class Processor:
@@ -179,7 +179,7 @@ class Processor:
 
                 this_data = this_data.replace(matched_text, ale_data[ale_col_name])
 
-                # override sound timcodes when clip is MOS
+                # override sound timecodes when clip is MOS
                 if ale_col_name in ["Sound TC", "Auxiliary TC1"]:
 
                     if not re.search(r"([0-9]{2}:){3}[0-9]{2}", this_data):
@@ -233,6 +233,37 @@ class Processor:
 
             ffmpeg_filters.append(watermark_string)
 
+        # audio mapping stuff
+        try:
+            tracks = int(self.options["limit_audio_tracks"])
+        except ValueError:
+            if self.options["limit_audio_tracks"] == "True":
+                tracks = 1
+            else:
+                tracks = 99
+
+        ffprobe_data = subprocess.check_output(['ffprobe',
+                                                ale_data["file_in"],
+                                                '-select_streams', 'a'
+                                                ], stderr=subprocess.STDOUT).decode('utf-8')
+
+        audio_streams = len(re.findall(r'Stream #.+Audio', ffprobe_data))
+
+        print(f"Found {audio_streams} audio streams")
+
+        # if clip is mos, ignore
+        if audio_streams == 0:
+            audio_filters = []
+
+        else:
+            if audio_streams > tracks:
+                mixdown_string = f'amix=inputs={tracks}:normalize=0'
+            else:
+                mixdown_string = f'amix=inputs={audio_streams}:normalize=0'
+
+            audio_filters = ['-filter_complex', mixdown_string]
+
+        # bitrate
         bitrate = self.options["bitrate"]
 
         if self.options["limit_audio_tracks"] == "True":
@@ -250,7 +281,7 @@ class Processor:
                           "-y",
                           "-i", ale_data["file_in"],
                           "-loglevel", "warning",
-                          ] + mapping + filters + [
+                          ] + mapping + filters + audio_filters + [
                              "-codec:v", "libx264",
                              "-preset", self.options["encoding_speed"],
                              "-b:v", f'{bitrate}k',
@@ -280,7 +311,7 @@ def verify_options(options: dict, ale_data=None):
         "font",
         "mos_tc_replacement",
         "threads",
-        "encoding_speed",
+        "encoding_speed"
     ]
 
     dependencies = {
@@ -310,6 +341,7 @@ def verify_options(options: dict, ale_data=None):
         "watermark_y_position": r'[\d\.]+',
         "watermark_size": r'\d+',
         "watermark_opacity": r'[\d\.]+',
+        "limit_audio_tracks": r'True|False|[\d+]',
 
     }
 
@@ -353,7 +385,6 @@ def verify_options(options: dict, ale_data=None):
 
 def process_video(process_data: list):
     process_result = subprocess.run(process_data, capture_output=True)
-    process_result.check_returncode()
     return process_result
 
 

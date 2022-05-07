@@ -1,19 +1,19 @@
-resolution,1920x1080
+resolution,1280x720
 blanking,2.39
-bitrate,5000
+bitrate,10000
 text_size,20
 padding,5
 font,Franklin Gothic Medium.ttf
 top_left,
 top_center,
 top_right,
-bottom_left,{Tape}
+bottom_left,
 bottom_center,
-bottom_right,{Start}
+bottom_right,
 mos_tc_replacement,MOS
 threads,8
 encoding_speed,veryfast
-limit_audio_tracks,False
+limit_audio_tracks,2
 watermark,
 watermark_y_position,0.75
 watermark_size,80
