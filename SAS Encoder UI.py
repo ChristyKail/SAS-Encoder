@@ -1,3 +1,5 @@
+#! /usr/local/bin/python3
+
 import csv
 import os
 import tkinter as tk
@@ -86,28 +88,28 @@ class App(tk.Tk):
 
         # blanking
         self.label_blanking = tk.Label(self, text="Blanking (0 for none)")
-        self.entry_blanking = tk.Entry(self, width=6)
+        self.entry_blanking = tk.Entry(self, width=8)
         self.entry_blanking.insert(0, "2.39")
         self.label_blanking.grid(column=0, row=3, sticky="E")
         self.entry_blanking.grid(column=1, row=3, sticky="W")
 
         # text size
         self.label_text_size = tk.Label(self, text="Text Size")
-        self.entry_text_size = tk.Entry(self, width=6)
+        self.entry_text_size = tk.Entry(self, width=8)
         self.entry_text_size.insert(0, "20")
         self.label_text_size.grid(column=2, row=3, sticky="E")
         self.entry_text_size.grid(column=3, row=3, sticky="W")
 
         # bitrate
         self.label_bitrate = tk.Label(self, text="Bitrate")
-        self.entry_bitrate = tk.Entry(self, width=6)
+        self.entry_bitrate = tk.Entry(self, width=8)
         self.entry_bitrate.insert(0, "10000")
         self.label_bitrate.grid(column=0, row=4, sticky="E")
         self.entry_bitrate.grid(column=1, row=4, sticky="W")
 
         # padding
         self.label_padding = tk.Label(self, text="Padding")
-        self.entry_padding = tk.Entry(self, width=6)
+        self.entry_padding = tk.Entry(self, width=8)
         self.entry_padding.insert(0, "5")
         self.label_padding.grid(column=2, row=4, sticky="E")
         self.entry_padding.grid(column=3, row=4, sticky="W")
@@ -115,35 +117,42 @@ class App(tk.Tk):
         # watermark options
         # watermark position
         self.label_watermark_y_pos = tk.Label(self, text="Watermark position")
-        self.entry_watermark_y_pos = tk.Entry(self, width=6)
+        self.entry_watermark_y_pos = tk.Entry(self, width=8)
         self.entry_watermark_y_pos.insert(0, "0.7")
         self.label_watermark_y_pos.grid(column=0, row=6, sticky="E")
         self.entry_watermark_y_pos.grid(column=1, row=6, sticky="W")
 
         # watermark opacity
         self.label_watermark_opacity = tk.Label(self, text="Watermark opacity")
-        self.entry_watermark_opacity = tk.Entry(self, width=6)
+        self.entry_watermark_opacity = tk.Entry(self, width=8)
         self.entry_watermark_opacity.insert(0, "0.2")
         self.label_watermark_opacity.grid(column=0, row=7, sticky="E")
         self.entry_watermark_opacity.grid(column=1, row=7, sticky="W")
 
         # watermark size
         self.label_watermark_size = tk.Label(self, text="Watermark size")
-        self.entry_watermark_size = tk.Entry(self, width=6)
+        self.entry_watermark_size = tk.Entry(self, width=8)
         self.entry_watermark_size.insert(0, "128")
         self.label_watermark_size.grid(column=0, row=8, sticky="E")
         self.entry_watermark_size.grid(column=1, row=8, sticky="W")
 
+        # resolution
+        self.label_resolution = tk.Label(self, text="Resolution")
+        self.entry_resolution = tk.Entry(self, width=8)
+        self.entry_resolution.insert(0, "1920x1080")
+        self.label_resolution.grid(column=0, row=9, sticky="E")
+        self.entry_resolution.grid(column=1, row=9, sticky="W")
+
         # MOS text
         self.label_mos_replacement = tk.Label(self, text="MOS TC")
-        self.entry_mos_replacement = tk.Entry(self, width=6)
+        self.entry_mos_replacement = tk.Entry(self, width=8)
         self.entry_mos_replacement.insert(0, "MOS")
         self.label_mos_replacement.grid(column=2, row=6, sticky="E")
         self.entry_mos_replacement.grid(column=3, row=6, sticky="W")
 
         # processes
         self.label_processes = tk.Label(self, text="Processes")
-        self.entry_processes = tk.Entry(self, width=6)
+        self.entry_processes = tk.Entry(self, width=8)
         self.entry_processes.insert(0, "8")
         self.label_processes.grid(column=2, row=7, sticky="E")
         self.entry_processes.grid(column=3, row=7, sticky="W")
@@ -167,12 +176,10 @@ class App(tk.Tk):
         self.option_encoding_speed.grid(column=3, row=8, sticky="W")
 
         # limit audio tracks
-        self.label_limit_audio = tk.Label(self, text="Limit to A1")
-        self.var_limit_audio = tk.StringVar()
-        self.var_limit_audio.set("True")
-        self.check_limit_audio = tk.Checkbutton(self, variable=self.var_limit_audio, onvalue="True", offvalue="False")
+        self.label_limit_audio = tk.Label(self, text="Audio track limit")
+        self.entry_limit_audio = tk.Entry(self, width=8)
         self.label_limit_audio.grid(column=2, row=9, sticky="E")
-        self.check_limit_audio.grid(column=3, row=9, sticky="W")
+        self.entry_limit_audio.grid(column=3, row=9, sticky="W")
 
         # buttons frame
         self.frame_buttons = tk.Frame(self, pady=15)
@@ -252,7 +259,8 @@ class App(tk.Tk):
 
         self.var_encoding_speed.set(options_dict["encoding_speed"])
 
-        self.var_limit_audio.set(options_dict["limit_audio_tracks"])
+        self.entry_limit_audio.delete(0, 'end')
+        self.entry_limit_audio.insert(0, options_dict["limit_audio_tracks"])
 
         self.entry_watermark.delete(0, 'end')
         self.entry_watermark.insert(0, options_dict["watermark"])
@@ -262,6 +270,9 @@ class App(tk.Tk):
         self.entry_watermark_size.insert(0, options_dict["watermark_size"])
         self.entry_watermark_opacity.delete(0, 'end')
         self.entry_watermark_opacity.insert(0, options_dict["watermark_opacity"])
+
+        self.entry_resolution.delete(0, 'end')
+        self.entry_resolution.insert(0, options_dict["resolution"])
 
     def generate_preset(self):
 
@@ -297,14 +308,17 @@ class App(tk.Tk):
             return
 
         self.update()
-        sas_encoder.Processor(file_name, options_dict, manager=self)
+        try:
+            sas_encoder.Processor(file_name, options_dict, manager=self)
+        except Exception as e:
+            messagebox.showwarning(title="Some errors occurred", message=str(e))
         self.lift()
 
     def compile_dict_from_ui(self):
 
         options_dict = {
 
-            "resolution": "1920x1080",
+            "resolution": self.entry_resolution.get(),
             "blanking": self.entry_blanking.get(),
             "bitrate": self.entry_bitrate.get(),
 
@@ -324,7 +338,7 @@ class App(tk.Tk):
             "threads": self.entry_processes.get(),
             "encoding_speed": self.var_encoding_speed.get(),
 
-            "limit_audio_tracks": self.var_limit_audio.get(),
+            "limit_audio_tracks": self.entry_limit_audio.get(),
 
             "watermark": self.entry_watermark.get(),
             "watermark_y_position": self.entry_watermark_y_pos.get(),
